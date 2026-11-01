@@ -35,11 +35,14 @@ was tried and what failed; [`docs/HANDOFF.md`](docs/HANDOFF.md) has the current 
 - **The shop**: items change stats; Crisis Coin prices; account amplifiers.
 - **Abilities from the game's own scripts**: the script engine runs all 875 of the game's server scripts with no
   unknown step; `tools/champion_check.py` tests every champion's Q/W/E/R without the client.
-- **Tutorial 1** with Gaslight Batman from start to finish: street, bridge, Super Strength, the Destroyer and the
-  victory.
+- **Tutorial 1** with Gaslight Batman plays through to the end (street, bridge, Super Strength, the Destroyer and the
+  victory), with the gaps listed below.
 - About 1,300 automated checks (see [Testing](#testing)).
 
 **Known issues and next steps**
+- Tutorial 1, bridge (tested 2026-11-01): the camera can't be unlocked, and clicking the minimap doesn't move it, so
+  the "unlock the camera" and "pan to the highlighted spot" steps only pass when their timeouts run out
+  (`camera_unlock_wait`). Some of the AI doesn't behave as it should.
 - Some ability animations: Batman's Bat Flight, the grappling hooks of Atom and Green Lantern, and a few spawned
   objects with no script yet (Green Lantern R, Nightmare Catwoman R, Zatanna Q, Gaslight Catwoman E, Nightwing R).
 - Crime Alley: turret heads vanish after a fight, and a strip in the middle of the map does not render (being
