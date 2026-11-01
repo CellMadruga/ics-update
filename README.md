@@ -1,190 +1,139 @@
 # Infinite Crisis preservation server
 
-A private server for the 2015 Steam client of **Infinite Crisis** (Turbine / Warner Bros., shut down in 2015).
-The goal is preservation: being able to play again with your own copy of the game. The current focus is
-**Tutorial 1** with Gaslight Batman, as a test bed for the champion, combat and ability systems that the
-other game modes will need later.
+A private server for the 2015 Steam client of **Infinite Crisis** (Turbine / Warner Bros., shut down in 2015), so
+the game can be played again with your own copy of it.
 
-It builds on everything the [infinite-crisis-server](https://github.com/EricHardiman/infinite-crisis-server)
-project by EricHardiman worked out: the message format, the event IDs and the original exe patches. This
-server reorganises it (one session per connection, timers per match, all settings in a config file) and goes
-much further into the tutorial. The messages it sends for the shared parts are **byte-for-byte identical** to
-those of the earlier server (`tests/test_compat.py` checks 26 of them).
+The server, `ics`, runs the game from the game's own data: champions, skills, maps, units and the game's server
+scripts are read from your install rather than written by hand.
 
-> Infinite Crisis is a trademark of Warner Bros. Entertainment / DC Comics. This project ships **no game
-> files** and no data extracted from them; you need your own Steam copy of the game.
+> Infinite Crisis is a trademark of Warner Bros. Entertainment / DC Comics. This project ships **no game files** and
+> no data extracted from them, only IDs, short names and numbers. You need your own Steam copy of the game.
 
-## Documentation
+## Credits
 
-| File | Contents |
-|---|---|
-| `README.md` | This file: install, usage, configuration, tools. |
-| [`docs/reverse-engineering.md`](docs/reverse-engineering.md) | Everything found about the client: data formats, skills and ability data, events, minimap notes, props, camera, and every exe patch. |
-| [`docs/batman_actions.md`](docs/batman_actions.md) | The 354 scriptlet keys Gaslight Batman accepts, with probable names and which ones were confirmed in game. |
-| [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | Development log, build by build (`fase3-xx` = build tag), including what was tried and what failed. |
-| `data/batman_actions.tsv` | Batman's scriptlet keys as `key<TAB>probable name`. |
+- **Manuel Moreno ([@krizalidx4](https://github.com/krizalidx4))** wrote the current server: decompiling the client,
+  the data-driven `ics` server, the script engine, the vs-AI maps, bots, the shop, the menus, the ID catalog and the
+  reverse-engineering notes in `docs/`.
+- **Eric Hardiman ([@EricHardiman](https://github.com/EricHardiman))** and **Zach ([@zperkinson](https://github.com/zperkinson))**
+  built the first server: SOAP login, the key exchange and exe patches, the message format and event IDs, the menus
+  and the first steps into Tutorial 1. It is kept on the
+  [`archive/original-server`](https://github.com/EricHardiman/infinite-crisis-server/tree/archive/original-server)
+  branch, and `tests/test_compat.py` checks that the shared messages are still byte-for-byte the same.
+
+## Status
+
+Latest build: **fase3-iz (2026-10-30)**. [`docs/CHANGELOG.md`](docs/CHANGELOG.md) has every build, including what
+was tried and what failed; [`docs/HANDOFF.md`](docs/HANDOFF.md) has the current state and the next steps.
+
+**Working**
+- Login, lobby, queue, champion select and the rewards screen; **all 54 champions** (156 variants, including the
+  ones the original game disabled), costumes and profile icons.
+- **vs-AI on every map**: Crime Alley, Gotham Divided, Coast City and Gotham Heights, with structures, minion waves,
+  jungle camps, stealth areas, gates, bosses and timed objectives (Raider, Leviathan, Orbital Cannon, Doomsday
+  Device), the announcer, kill feed, scoreboard, surrender and end cinematics.
+- **Bot champions** that lane, siege behind minions, trade, retreat, recall and shop.
+- **The shop**: items change stats; Crisis Coin prices; account amplifiers.
+- **Abilities from the game's own scripts**: the script engine runs all 875 of the game's server scripts with no
+  unknown step; `tools/champion_check.py` tests every champion's Q/W/E/R without the client.
+- **Tutorial 1** with Gaslight Batman from start to finish: street, bridge, Super Strength, the Destroyer and the
+  victory.
+- About 1,300 automated checks (see [Testing](#testing)).
+
+**Known issues and next steps**
+- Some ability animations: Batman's Bat Flight, the grappling hooks of Atom and Green Lantern, and a few spawned
+  objects with no script yet (Green Lantern R, Nightmare Catwoman R, Zatanna Q, Gaslight Catwoman E, Nightwing R).
+- Crime Alley: turret heads vanish after a fight, and a strip in the middle of the map does not render (being
+  narrowed down with `tools/diag.py --strip3`).
+- The fase3-ht to fase3-iz changes (bots, bosses, Shards sphere, team tints, hover highlight) have only partly been
+  tested in game.
+- Planned: a configuration dashboard for game values (damage, health, speed, minions, jungle), account bans and
+  turning champions on and off.
+- The "Modern" client UI was removed on 2026-10-30 and will be redone from scratch (notes in
+  `docs/re-notes/ui-modern-*.md`).
 
 ## Installation
 
 1. **Python 3.11 or newer (64-bit)**, then:
    ```
-   pip install pycryptodome
+   python -m pip install -r requirements.txt
    ```
-2. Put this folder anywhere (it does not need to be inside the game folder; the usual setup is
-   `<game folder>\icserver`).
-3. Copy `config.example.toml` to `config.toml` and set `dir` under `[game]` to your game folder
-   (the one with `InfiniteCrisis.exe` and the `rp` folder).
-4. **Champion list:** copy `champions.json` from the earlier project into `data\` (if your clone of it is at
-   `<game>\_server` it is also found there). It stays local: `.gitignore` keeps it out of the repository.
-5. **Close the earlier server** (`login_server.py` and `tracer.py`) if it is running: it uses the same ports.
+2. Clone this repository anywhere; it does not need to be inside the game folder.
+3. Copy `config.example.toml` to `config.toml` and set `dir` under `[game]` to your game folder (the one with
+   `InfiniteCrisis.exe` and the `rp` folder).
+4. Check the setup, patch the client and build the champion list:
+   ```
+   python ic.py doctor        checks everything and tells you how to fix each problem
+   python ic.py patch         creates the server key and InfiniteCrisis_patched.exe in the game folder
+   python tools\roster.py     builds data\champions.json from your install
+   ```
+   Re-run `python ic.py patch` whenever a build adds exe patches (the changelog says so); `doctor` reports which
+   are missing.
 
 ## Usage
 
 ```
-python ic.py doctor     checks everything and tells you how to fix each problem
-python ic.py patch      creates the server key and InfiniteCrisis_patched.exe (with that key)
-python ic.py play       starts the server and launches the game
+python -m ics play      starts the server and launches the patched game
+python -m ics server    server only (launch the game yourself)
+python -m ics skills [variant]   a champion's kit as the server reads it from the data
 ```
 
-Also available:
-
-| Command | What it does |
-|---|---|
-| `python ic.py server` | Server only (launch the game yourself). |
-| `python ic.py client-args` | Prints the game's command-line arguments. |
-| `python ic.py patch --newkey` | New key + new patched exe. |
-| `python ic.py play --classic` | Uses the older player object (`0x40000086`) if loading gets stuck. |
-| `python ic.py layout 0xa0000256` | Lists everything placed in a pack: name, world state, position and heading. |
-| `python ic.py variants 0xa0000257` | Which character variant (with health) belongs to each world state. |
-| `python ic.py entities 0x2E000AAB ...` | Searches ALL packs for the entity (0x40…) of each world state; writes `logs\entities.txt`. |
-| `python ic.py carriers` | Finds entities whose world state resembles the vehicle's (property 0x50F), usable as prop carriers; writes `logs\carriers.txt`. Slow. |
-| `python ic.py dump <DIDs>` | Searches every pack for the given records, the records they name and who references them; writes `logs\dump.txt`. Slow. |
-
-Options: `--config file.toml`, `--force` (start even if doctor finds problems).
-
-**Re-run `python ic.py patch` whenever a build adds exe patches** (the changelog marks those builds with
-"requires `python ic.py patch`"). `doctor` reports which patches are missing.
-
-In game: log in with any user name and password, then
-**Play Now → VS A.I. → Tutorial → Tutorial 1 → Launch**.
+In game, log in with any name and password, then **Play Now → VS A.I.** and pick a map, or **Tutorial → Tutorial 1**.
 
 ### Logs (`logs\`)
 
 | File | Contents |
 |---|---|
-| `server.log` | Every step of loading and of the tutorial script, one line each. Start here. |
-| `traffic.log` | Every message with a hex dump (`[debug] hexdump`). |
+| `server.log` | Every step of loading and of the match, one line each. Start here. |
+| `traffic.log` | Every message with a hex dump (`[debug] hexdump`). Gets large. |
 | `unhandled.log` | Messages the client sends that the server does not handle yet. This is where missing features show up. |
 
 ## Configuration
 
-Everything lives in `config.toml` (see `config.example.toml`; defaults are in `icserver/config.py`).
-Main sections:
+Everything lives in `config.toml` (see `config.example.toml`). The defaults, each with the date and the reason it
+was chosen, are in `ics/config.py` (the `[ics]` section and the match settings) and `icserver/config.py` (game
+folder, ports, key, timing). Every behaviour change has a setting, so it can be switched back from `config.toml`.
 
-| Section | What it controls |
+## Repository layout
+
+| Path | What |
 |---|---|
-| `[game]` | Game folder, exe names, language, region, CPU affinity. |
-| `[server]` | Host, ports (SOAP 8888, user 9000, game 9001), key file, champions.json. |
-| `[match]` | Champion, player object class, spawn point, intro cinematic, health. |
-| `[timing]` | Load timing, keep-alive, movement rate and speed, ping lifetime. |
-| `[tutorial]` | Guide markers, meteors (size, scale property), crater, knockdown, Catwoman cinematic, pacing. |
-| `[combat]` | Drones (health, damage, range), obstacles, prop carriers, cooldowns (`cooldowns`, `enforce_cooldowns`). |
-| `[scripts]` | Scriptlet keys played for basic attacks, hits and deaths. |
-| `[debug]` | Hex dumps, `logs\send.txt`, and the **action tour** (`tour_keys`, `tour_interval`, `tour_start`). |
+| `ics/` | **The server** (`python -m ics play`). `session.py` (one connection), `world.py` (objects, movement, fog), `gamedata.py` + `records.py` (game data), `script_model.py` + `script_runtime.py` + `script_nodes.py` (the game's server scripts), `director.py` + `encounters/` (Tutorial 1's flow), `match/` (vs-AI maps, waves, bots, bosses), `shop.py`, `account.py`, `lobby.py`, `matchend.py`. |
+| `icserver/` | The earlier hand-written Tutorial 1 server, kept as a reference. `ic.py` uses it for `doctor` and `patch`, which `ics` needs. |
+| `uesrv/` | **Experimental**: groundwork for an Unreal Engine 5 client (asset server, texture, mesh and Havok animation export). Not needed to play. |
+| `ic.py` | Command line for setup and data lookups: `doctor`, `patch`, `catalog`, `find <text or ID>`, `layout`, `variants`, `entities`, `dump`, `carriers`. |
+| `tools/` | Diagnostics and data tools: `diag.py` (+ `tracer.py`) logs what the running client does; `roster.py`, `skill_graphs.py`, `champion_check.py`, `bot_sim.py`, `script_coverage.py`, `build_catalog.py`. |
+| `catalog/` | Every game ID the server uses, as `data/*.tsv` and a searchable `index.html`. Rebuild with `python ic.py catalog`. |
+| `docs/` | [`reverse-engineering.md`](docs/reverse-engineering.md) (how the client works, every exe patch), `CHANGELOG.md`, `HANDOFF.md`, `AI_GUIDE.md` (where everything is), `re-notes/` (raw notes from the client decompilation; index: `re-notes/full-index.md`). |
+| `tests/` | See below. |
 
-The action tour plays scriptlet keys on Batman one at a time after the tutorial starts, to see which
-animations work: `tour_keys = "core"` (25 main keys), `"all"` (all 354 from `data/batman_actions.tsv`) or a
-list such as `[0x10000163, 0x10000165]`. Each key is logged as `tour N/M: <key> <label>`.
+These stay local and are kept out of the repository by `.gitignore`: `config.toml`, `keys\*.pem`, `logs\`,
+`data\champions.json`, account and progress files, caches and every `.exe`.
 
-## Tools (`tools\`)
+## Testing
 
-These read your own game install and write their findings to `logs\`. They never copy game files.
+```
+python tests\test_catalog.py                          catalog tables are well formed
+python tests\test_ics.py                              the server (40)
+python tests\test_session_flow.py                     login -> queue -> select -> match -> rewards -> menu (91)
+python tests\test_match.py                            vs-AI maps and mechanics (608)
+python tests\test_director.py                         Tutorial 1's flow (43)
+python tests\test_scriptvm.py / test_graph.py         the script engine (78) and champion graphs (34)
+python tests\test_shop.py / test_navmesh.py           shop (18), pathing (13)
+python tests\test_meltdown.py                         Atomic Green Lantern's R and Q on a bot (77)
+python tests\test_terrainfix.py [--real]              the map-pack terrain patch (33)
+python tests\test_e2e.py tests\e2e.example.toml       a simulated client through the old Tutorial 1 server (178)
+python tools\script_coverage.py                       how many game scripts run with no unknown step (875/875)
+```
 
-| Tool | What it does |
-|---|---|
-| `tools\diag.py` | Attaches to the running client as a lightweight debugger and logs what the client does at chosen addresses (`logs\diag.log`). Flags: `--walk`, `--walk-only`, `--fix`, `--force`, `--started`, `--hfsm`, `--scripts`, `--entities`, `--packs`, `--ranks`, `--q`, `--fog`, `--team`, `--notes`, `--minimap`, `--create`, `--place`, `--stolen`, `--props`. |
-| `tools\diag_walk.py` | Shortcut for `diag.py --walk --walk-only`. |
-| `tools\skills.py` | Readable dump of a champion's skill records with their English texts (`logs\skills.txt`). `python tools\skills.py "Gaslight Batman"` or a record DID such as `0x48000615`. |
-| `tools\find_scripts.py` | Searches the packs for the client's Lua scripts related to skills/progression. |
-| `tools\extract_records.py` | Extracts raw records by DID into `logs\records\` (default: Gaslight Batman's scriptlets). |
+`tests\e2e.example.toml` uses other ports than the real server; adjust its paths first. `ICS_TEST_PORT` and
+`SESSION_TEST_PORT` move the ports of `test_ics` and `test_session_flow`.
 
-`diag.py` result codes for scriptlet orders: `0` = started, `1` = ignored by the game,
-`0x80070057` = invalid ID, `0x8000ffff` = the entity has no script component.
+## Contributing
 
-## For developers
+`main` is protected: changes go through a pull request approved by a code owner (see `.github/CODEOWNERS`).
+`CLAUDE.md` has the project's working rules; the most important ones:
 
-- `logs\send.txt`: every line `<player|svc|id hex> <event hex> <body hex>` is sent to the client within 1 s
-  (`[debug] dev_send_file`).
-- `python tests/test_e2e.py config.toml`: a full match against a simulated client, including leaving,
-  logging in again, double-clicking Launch, combat and the whole tutorial script up to the victory
-  (169 checks). Use other ports in that test config.
-- `python tests/test_compat.py <earlier _server folder>`: byte-for-byte comparison with the earlier server.
-- `python tests/test_jump.py config.toml`: each `[tutorial] start_at` jump starts where it should.
-- `python tests/test_layout.py <rp folder>`: checks that the tutorial table matches the packs.
-
-Code layout:
-
-| File | What it does |
-|---|---|
-| `ic.py` | Command-line entry point. |
-| `icserver/wire.py` | Binary format. |
-| `icserver/messages.py` | Protocol messages. |
-| `icserver/session.py` | Sessions, load sequence, movement, combat, casting. |
-| `icserver/tutorial1.py` | Tutorial 1 script, part 1 (markers, meteors, crater, drones, thug, pings, Q, action tour). |
-| `icserver/bridge.py` | Tutorial 1 part 2: the bridge, from Catwoman's pursuers to the Bat Scream (gates, drone groups, rank-ups, the camera, R). |
-| `icserver/finale.py` | Tutorial 1 part 3: Super Strength (lift and throw cars), the Destroyer, the ending. |
-| `icserver/skilldata.py` | Builds a Stolen Power slot's skill collection (D / F) from the game data and `logs\props.txt`. |
-| `icserver/batman.py` | Gaslight Batman's W (Sonic Shell), E (Bat Flight), R (Bat Scream) and Stolen Power (surveillance camera). |
-| `icserver/abilities.py` | Ability engine (kits, cooldowns, cooldown event 0x20F8). |
-| `icserver/world.py` | Obstacles, pathing, fog of war. |
-| `icserver/rp.py` | Reader for the game's `.rp` packs. |
-| `icserver/scheduler.py` | Per-match timers. |
-| `icserver/server.py` | Ports and SOAP login. |
-| `icserver/crypto.py` | Login key exchange. |
-| `icserver/doctor.py` | Installation checks. |
-| `icserver/patcher.py` | Exe patches (each one documented in the source and in `docs/reverse-engineering.md`). |
-| `icserver/config.py` | Config loading and defaults. |
-
-## Status
-
-Working in Tutorial 1: login, lobby and loading; intro cinematic; movement with obstacles; guide markers and
-arrows; the street vehicle, meteors and the meteor crater; the drone fight with the human thug; practice
-drones and waves; basic attacks with animations; skill ranking with the "+" button; Sonic Batarang (Q) with
-cooldown display; minimap with the real map, Batman, team colours and player pings; fog of war; the
-Catwoman cinematic; then the bridge: her pursuers, W (Sonic Shell) and E (Bat Flight) unlocked and practised
-on target drones, the blue gates, drone ambushes (melee and ranged), the surveillance camera on D, the passive,
-the drones at the vehicle, the R unlock and the Bat Scream at the drones the camera spots; then Super Strength
-(lifting and throwing cars), the Destroyer and the ending (positions estimated from video).
-
-To test a later part without replaying the start: `[tutorial] start_at = "bridge"` (or `"camera"`,
-`"gate_fight"`, `"unlock_e"`, `"e_practice"`, `"vehicle"`, `"scream"`, `"strength"`, `"destroyer"`).
-
-The D and F buttons need `logs\props.txt`: run `python tools\diag.py --props` once (start it in the menu,
-then enter the tutorial).
-
-Next: the real victory screen, positions checked against the original (see
-[`docs/reverse-engineering.md`](docs/reverse-engineering.md#remaining-tutorial-1-content)).
-
-## One folder, ready for GitHub
-
-Everything the server and its tools need lives in this folder: the diagnostic's debugger is `tools\tracer.py`
-(taken from the earlier project), so `[debug] old_server_dir` is no longer needed.
-
-These stay local and are kept out of the repository by `.gitignore`:
-- `config.toml`;
-- `keys\*.pem`;
-- `logs\`;
-- `data\champions.json` and `data\progress.json`;
-- every `.exe`.
-
-No game file belongs in the repository.
-
-Only `python tests/test_compat.py` still uses the earlier project, to compare with its server byte for byte; it
-is optional.
-
-
-## Game ID catalog
-
-`catalog/index.html` lists every game ID the server uses (champions, skills, Stolen Powers, stages, protocol
-events, properties, ...) with search and copy buttons. Rebuild it with `python ic.py catalog`; see
-[`catalog/README.md`](catalog/README.md).
+1. Never commit game files: no `.rp`, `.exe`, images or extracted game text (descriptions, dialogue).
+2. Record every discovery in the catalog (`catalog/data/*.tsv`), `docs/reverse-engineering.md` and a new
+   `docs/CHANGELOG.md` entry, then rebuild the catalog with `python ic.py catalog`.
+3. Give every behaviour change a config default with a comment saying when and why.
