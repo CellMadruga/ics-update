@@ -5,8 +5,8 @@ everything is). The whole client is decompiled: `docs/re-notes/full-index.md`. E
 
 ## Working with the user
 
-- **Reply to the user in Spanish.** Code, comments, docs, commit messages and the catalog stay in English.
-- The user tests in the real game client on this Windows machine and sends back `logs\server.log`,
+- Reply in the user's language. Code, comments, docs, commit messages and the catalog stay in English.
+- The user tests in the real game client on their Windows machine and sends back `logs\server.log`,
   `logs\traffic.log`, `logs\unhandled.log` and, when asked, `logs\diag.log` (from `python tools\diag.py ...`,
   run in a second console while the game is open). Screenshots describe what is wrong on screen.
 - Never ask the user to do something you can check yourself in the code, the logs or the catalog.
@@ -64,7 +64,7 @@ everything is). The whole client is decompiled: `docs/re-notes/full-index.md`. E
   `python tools\champion_check.py --vs-champion --window 5 --out <json>` — every champion's kit headless (verdict and
   damage per slot); compare with the previous build's JSON.
 - The Modern client UI code was removed on 2026-10-30 (archived outside the repo); its findings stay in
-  docs/re-notes/ui-modern-*.md and the design canvas https://claude.ai/artifact/AM81tAMYhGA9J4o8huiddu. It will be redone from scratch.
+  docs/re-notes/ui-modern-*.md. It will be redone from scratch.
 - Then the user tests in the game. Build tags continue from `fase3-iz` (next: `fase3-ja`).
 
 ## Facts that are easy to get wrong

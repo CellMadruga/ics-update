@@ -27,8 +27,7 @@
 ## Direction now
 The user asked (2026-10-21) for a **new server that runs the game from its own data**, with as few hand-written
 adjustments as possible: `ics/` (`python -m ics play`). The old server (`icserver/`, below) stays as a reference;
-new work goes to `ics/`. The project lives in `C:\Infinite Crisis Server\server`; the game copy is its parent folder
-(`C:\Infinite Crisis Steam` belongs to another chat: do not touch it). The user wants everything found and built:
+new work goes to `ics/`. The game folder is `[game] dir` in `config.toml`. The user wants everything found and built:
 shop, inventory, augments, maps, every champion (also the "disabled" ones).
 
 ## Where ics stands
@@ -84,7 +83,7 @@ Finish **Tutorial 1** with all of Gaslight Batman's animations, actions and inte
 
 ## Notes
 - The heavy reverse-engineering artifacts from the cloud session (full disassembly, extracted packs) were not
-  transferred. Regenerate what you need locally from `C:\Infinite Crisis Steam` (read-only; never copy game files
+  transferred. Regenerate what you need locally from the game install (read-only; never copy game files
   into the repo). Addresses and findings are in `docs/re-notes/*.txt` and `docs/reverse-engineering.md`.
 - `catalog/index.html` is the quickest way to look up an ID; `python ic.py find <text|id>` does the same in the
   console.

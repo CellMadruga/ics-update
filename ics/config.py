@@ -10,7 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DEFAULTS = {
     "game": {
-        "dir": r"C:\Infinite Crisis Server",
+        "dir": r"C:\Program Files (x86)\Steam\steamapps\common\Infinite Crisis Steam",
         "exe": "InfiniteCrisis.exe",
         "patched_exe": "InfiniteCrisis_patched.exe",    # made by python ic.py patch (login key, client fixes)
         "language": "en",

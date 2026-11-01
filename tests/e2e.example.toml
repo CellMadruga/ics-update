@@ -1,11 +1,11 @@
 # Test configuration for tests/test_e2e.py and tests/test_jump.py:
 #   python tests\test_e2e.py tests\e2e.example.toml
-# Other ports than the real server, so both can run. Copy it and adjust the paths.
-# 2026-10-29 (user): this project lives in C:\Infinite Crisis Server only; C:\Infinite Crisis Steam is not to be touched.
+# Other ports than the real server, so both can run. Copy it and adjust the paths
+# (dir = your game folder, key and progress_file inside this repository).
 [game]
-dir = 'C:/Infinite Crisis Server'
+dir = 'C:/Program Files (x86)/Steam/steamapps/common/Infinite Crisis Steam'
 [server]
-key = 'C:/Infinite Crisis Server/server/keys/server_private.pem'
+key = 'keys/server_private.pem'
 soap_port = 18888
 user_port = 19000
 game_port = 19001
@@ -23,4 +23,4 @@ basic_attack_damage = 200
 attack_interval = 0.2
 corpse_seconds = 0.5
 [account]
-progress_file = 'C:/Infinite Crisis Server/server/logs/progress_test.json'
+progress_file = 'logs/progress_test.json'
