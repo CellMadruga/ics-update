@@ -1,0 +1,4 @@
+# Reverse-engineering tools only: python -m pip install -r requirements-tools.txt
+capstone          # tools/script_nodes.py (disassembles the client's script nodes)
+unicorn           # tools/script_decoder.py (emulates the client's script decoder)
+# tools/renderdoc_dump.py runs inside RenderDoc, which provides its own renderdoc module.

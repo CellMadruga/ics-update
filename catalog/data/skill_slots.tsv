@@ -1,0 +1,17 @@
+slot	name	key	slot_property	notes
+0	Basic attack		0x100008E3	Rank from element 0 of 0x100000AF.
+1	Power 1	Q	0x100008E8	FirstPowerSetSkill. Rank levels (client 0x94E4): 1/3/6/9 unless the block's 0x1000099C says otherwise.
+2	Power 2	W	0x100008EA	Rank levels 1/3/6/9 (client 0x94E4).
+3	Power 3	E	0x100008EC	Rank levels 1/3/6/9 (client 0x94E4); Starro's E block has 0x1000099C [2] (rank 1 at level 2).
+4	Power 4	R	0x100008E6	LastPowerSetSkill. Rank levels 6/10/14/18 (client 0x94E4; the 4th rank is reachable under the level cap 19); Green Arrow's R block has 0x1000099C [1,6,11,16].
+5	Passive		0x100008EF	LastRankable. Max rank 3; rank levels 1/3/6 (client 0x94E4).
+6	Recall		0x100008E4	Script 0x3400000A (ics give_recall): Recall_Start 0x100005BA (graph wildcard only in Zod's), channel fx StartScriptlet 0x10000223 + 0x1E00009C for RecallDuration (stat 14), Fidgets_Disable / _Enable 0x10000320 / 321, Emote_Abort, Recall_End 0x100005BB / _Abort 0x100005CF; the fx is held as a looping key (start_scriptlet_hold, fase3-ij)
+7	Secondary 1 (Stolen Power)	D	0x100008F0	Property collection (kind 0x0B) with the skill's whole definition.
+8	Secondary 2 (Stolen Power)	F	0x100008F1	Property collection (kind 0x0B).
+9	Bonus		0x100008F2	
+10	Item 1		0x100008E5	
+11	Item 2		0x100008E7	
+12	Item 3		0x100008E9	
+13	Item 4		0x100008EB	
+14	Item 5		0x100008ED	
+15	Item 6		0x100008EE	

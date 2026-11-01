@@ -1,0 +1,4 @@
+# Server: python -m pip install -r requirements.txt  (Python 3.11 or newer, 64-bit)
+pycryptodome      # login key exchange (ics/crypto.py; falls back to cryptography)
+cryptography      # the fallback above, and the simulated client in tests/test_e2e.py and tests/test_ics.py
+Pillow            # optional: shop page images (ics/store_web.py)
