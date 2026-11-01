@@ -17,7 +17,7 @@ soap_port = 8888
 user_port = 9000
 game_port = 9001
 key = "keys/server_private.pem"
-champions_json = ""          # empty = looks for data\champions.json and <game>\_server\champions.json
+champions_json = ""          # empty = data\champions.json (built by python tools\roster.py)
 
 [account]
 level = 30

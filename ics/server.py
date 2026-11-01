@@ -108,7 +108,8 @@ class Server:
         _R.PREDICATE_FIRST = bool(cfg["ics"].get("predicate_first_in_conditions", True))
         _R.REENTER_ON_CODE = bool(cfg["ics"].get("any_reenter_on_code", False))
         if not self.data.roster:
-            raise RuntimeError("data\\champions.json not found (the champion list for the account screens)")
+            raise RuntimeError("data\\champions.json not found (the champion list for the account screens): "
+                               "run python tools\\roster.py")
         script_runtime.SCRIPT_RESOLVER = self.data.entity_scripts
         script_runtime.STATUS_RESOLVER = self.data.status_script
         script_runtime.STACKS_RESOLVER = self.data.status_max_stacks

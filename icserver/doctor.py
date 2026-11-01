@@ -86,7 +86,7 @@ def run(cfg, quick=False):
     # Roster
     ch = cfg.champions_path()
     add(OK if ch else FAIL, f"champion list: {ch or 'not found'}",
-        "" if ch else "copy champions.json from the original project (_server) into the data\\ folder")
+        "" if ch else "run python tools\\roster.py (it builds data\\champions.json from your game install)")
 
     # Key + patched exe
     key = None

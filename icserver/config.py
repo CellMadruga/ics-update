@@ -64,8 +64,8 @@ DEFAULTS = {
         "user_port": 9000,
         "game_port": 9001,
         "key": "keys/server_private.pem",
-        # champions.json (roster extracted from the packs). Empty = search
-        # data\champions.json, then <game dir>\_server\champions.json.
+        # champions.json (roster extracted from the packs by tools/roster.py).
+        # Empty = data\champions.json.
         "champions_json": "",
     },
     "uesrv": {
@@ -657,8 +657,7 @@ class Config:
     def champions_path(self):
         explicit = self.data["server"].get("champions_json")
         candidates = [self.resolve(explicit)] if explicit else []
-        candidates += [os.path.join(ROOT, "data", "champions.json"),
-                       os.path.join(self.game_dir, "_server", "champions.json")]
+        candidates += [os.path.join(ROOT, "data", "champions.json")]
         for c in candidates:
             if c and os.path.isfile(c):
                 return c

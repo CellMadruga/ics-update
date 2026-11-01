@@ -1,6 +1,9 @@
 """Byte-for-byte comparison with the original server's builders.
 
-  python tests/test_compat.py <path to the old _server folder>
+  python tests/test_compat.py <path to a checkout of the old server>
+
+The old server is the archive/original-server branch
+(git worktree add ../old-server archive/original-server).
 
 The old login_server.py is imported with a stubbed 'Crypto' package (its key
 is never used here) and with its clocks frozen, then every message both
