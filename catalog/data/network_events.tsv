@@ -1,0 +1,195 @@
+id	direction	name	server_status	notes
+0x2	both	Notice (generic)	handled	Client: cinematic state, input notices. Server: tutorial hint.
+0x3	server	Remove object	sent	
+0x4	server	Create / update object (with properties)	sent	Batch 0x4 with 0xF2 descriptor. To a live object it rebuilds nothing: 0xF2 is a no-op while its u32 equals entity+0x110 (0); 0xBC is a diff (0x62AFD0: sets the sent ids as 0x6 does, removes the object's own net-mode 1/3 ids it omits); 0xB0 is one more movement state; a batch with only 0xB0 reaches the same listener 0x60AFA0 (object-update-bundles.md, fase3-if). ics [ics] object_update_mode "delta" (fase3-if): the full batch only creates an object (and for creation retries, a champion's death / respawn, array / table changes); its updates are a batch with only the 0xB0 plus 0x6 / 0x86 (World.delta).
+0x6	server	Set one property	sent	u8 0 | property entry (u32 id, packed id, value); handler 0x635360 -> collection change path. ics: late unit flags (fase3-gd); fase3-if delta updates: one per changed property of a live object (World.delta; an equal value notifies nothing, 0x578DE0). Open: the static read path 0x445530 is base u8 + 0x509740 (packed id + value, the 0xBC table's per-entry reader) with no u32 before it, yet ics's u32-first form works in the game (2026-10-23 diag --target: a 0 -> flags toggle by 0x6 set the unit cache).
+0x42	server	Vitals (health, secondary resource)	sent	Only to objects with a vitals component. Sent with every champion bundle. Handler 0xAB2880 -> 0xAB1BD0 dereferences [entity+0x80] with no null check (crash rva 0x6B1BD9); the component exists only if PerceivedType 0x1000019D & 0x7F59FB at creation; ics checks that (vitals_need_perceived_type, fase3-in).
+0x86	server	Remove one property	sent	u8 0 | u32 id (reader 0x839500); exec 0x699210 -> 0x6353B0 -> property component vt+0x54 (0x577E10): notified as removed, or as changed back to the class template's value (object-update-bundles.md). ics fase3-if (P, never seen in the game yet): one per id of network mode 1 / 3 (MasterProperty 0x32000000) that left a live object's list, what a full bundle's 0xBC removed ([ics] delta_remove_missing; net-0 ids only with delta_remove_net0).
+0x8A	server	Destruction impulse (sphere): u8 0 | Position | f32 radius | magnitude | u32 level | u32 hit key | u32 FX | u8	sent	Exec 0x698350, handler 0x632590 -> 0x632370: impulse object 0x630E80, physics sphere query 0x631C50 (0x5CEA30; piece bodies 0x631B00, destructible entities 0x631940), applied by 0x631FA0 only when something was found: piece health -= magnitude (0x62F290 -> 0x62BEF0 -> 0x62BC00), break at <= 0. Breaks only pieces whose bodies (made by 0x8B at the entity's frame) are inside the sphere: ics rebuilds a landed vehicle (0x8B) first ([ics] liftable_land_rebuild, fase3-im; liftable-throw-destruction.md 3). full-protocol.tsv; ics (fase3-gm, fase3-ij)
+0x8D	server	Start scriptlets on an entity	sent	Animations, VFX, sounds; key must be in the entity's table.
+0xB0	server	Movement state (batch sub-event or standalone)	sent	Exec 0x698CD0 -> 0x6298D0: the object's 0xB0 listeners (movement 0x60AFA0: merge 0x57DA90, push 0x609C70, same module seq = no-op 0x553E70; containment 0x6113E0: parent IID 0 only clears a queued attach). ics sends it inside 0x4 (object-update-bundles.md); fase3-if delta mode: alone in a 0x4 batch for every update of a live object (pvp_movement_state, with the 0x04 attach block; same bytes as the bundle's). Motion bits 0x400 (s16 facing pitch) / 0x4000 (s16 roll), rad * 10000 after the facing yaw: sent for a thrown vehicle's nose-down ([ics] liftable_throw_pitch, fase3-il, agl-arm-meteor-vehicle-tilt.md 3).
+0xBC	server	Set a property table (batch sub-event or standalone)	sent	Exec 0x699330 -> 0x635440 -> vt+0xA4 0x62AFD0: equal values notify nothing (deep compare for arrays / tables), changed ids notify, omitted own ids of net mode 1 / 3 are removed. ics sends it inside 0x4 (object-update-bundles.md).
+0xCC	client	Level loaded	ignored	Sent with the 10/15 % loading step.
+0xCE	server	Account character set	sent	Login.
+0xEB	server	Set local player	sent	At login and again before every later match (the world teardown resets it). Must be re-sent before every match after the first: the world teardown clears the local IID (0x635250(0,0)); ics sends it in ConnectToLobby (fase3-hj).
+0x11F	server	Stop a scriptlet run on an entity	sent	u8 0 | u32 key | u32 run instance (0xFFFFFFFF = every run of the key) | u8 flag (0 / 1). Serializer 0x6751A0, exec 0x675280 -> script component 0x57C4B0 -> 0x529EF0 (end list, state 5, attachments released). The real stop: a 0x8D with a live run's instance and a signal bit only runs the definition's signal handlers (0x534290). Builder ics/messages.py stop_scriptlet (fase3-if); sent only with the opt-in [ics] death_overlay_scriptlets, to end _CDefeatSystem_DeathOverlay's run at the respawn and at the match end ([ics] death_overlay_stop) (docs/re-notes/death-animation.md 4, 11). fase3-ih: also at the Crime Alley relay's unlock (Raider arrival): stops Vfx_Locked, every run ([ics] match_nook_pad unlock_stop; throw-truck-padlock.md 4). fase3-ij: the u8 is 0x57C4B0's mode argument (passed to the component's vt+0x7C); the client's own StopScriptletKey path 0x588A80 passes 1; the relay stop now sends 1 for Vfx_Locked and _Selection_Usage_Locked, again 0.5 / 2 s later (unlock_stop_flag / unlock_stop_again; throw-padlock-coredeath.md 2).
+0x100	server	Packet: ServerSwitch	sent	u32 sequence; makes the game connection current.
+0x12D	client	Left the match world	handled	After the match ends (teardown).
+0x800	server	Packet: Referral	sent	u64 cookie | u16 | u8 | u8 | u16 port | char[256] host. After AcceptMatch.
+0x2001	server	Start conversation	sent	u8 0 | u64 | u32 | u32 key | list<u64> speakers | u8 | u32 instance; handler 0xa13b90 -> dialog system vt+8. ics: one instance id per conversation (fase3-ge)
+0x2009	server	Objective update	sent	
+0x200D	client	RequestChangeAmplifierSet	handled	full-protocol.tsv; ics (fase3-gm)
+0x200F	server	Effects: add one effect instance (u8 = fresh)	sent	full-protocol.tsv; ics (fase3-gm) Crashes this client build (null record in the network ctor 0x44BD00 path): never sent (fase3-hj).
+0x2016	server	End room check	sent	Lobby.HideBackButton = SetLobbyTransition (0xab9080 -> 0xab8ec0, UI event 0x23): lobby -> loading screen; sent after champion select (0x2053).
+0x201E	client	RequestAllPregameTips	handled	full-protocol.tsv; ics (fase3-gm)
+0x2021	server	Exit lobby	off	u8 0 | u32 room id; handler 0xABC480 runs a world teardown (and the client goes home). Not sent after a match (exit_lobby_after_match = false, 2026-10-28: it ran a second teardown while the end page was built).
+0x2024	server	Deliver encounter info	sent	Login. Lists: DIDs, queue flags (0x200000 blind, 0x20000 draft, 0x10000 ranked), per-encounter access strings (empty = all), u32 list (zeros). Handler 0xA733B0.
+0x2026	client	Lobby Draft_RequestTrade (Lobby listener 0x1604b84 slot 0x4 = raise 0x918610 slo	handled	full-protocol.tsv; ics (fase3-gm)
+0x2028	server	Lobby room created	sent	
+0x2029	server	Lobby player slot	sent	
+0x202B	server	Effects: remove effect instance (GUID)	sent	full-protocol.tsv; ics (fase3-gm)
+0x202D	client	LobbyUIReady	handled	full-protocol.tsv; ics (fase3-gm)
+0x2031	server	Lobby loading percent	sent	Three lists (team, index, percent) | u32 room; display only (0xab8730 -> 0x8eed40). ics lists every slot, bots at 100.
+0x2034	server	Objective list	sent	
+0x2038	server	Match ended	sent	UI state machine event MatchEnded.
+0x2045	server	End-of-match stats	sent	u8 0 | u32 n | n x entry (reader 0x8776A0) | f32. Rows: own account IID (+0x08; keys Flash upgrades / power graph), champion DID +0x1C, level +0x20, team, name, the stats block, and the artifact list +0x2FC (u32 n | n x (DID, stack)): only when it is not empty does 0xA3AC70 send Flash UpdateCurrentUpgrades / UpdatePowerGraphValues, which ScorecardManager needs from every row (timeline-kda-endscreen.md).
+0x204C	server	Lobby state	sent	Sets the lobby room id the loading steps need. Its owned list (DID, 2, type 1 champion / 4 costume, 1, 1) is the skin picker's source (0xa95e70 -> lobby+0x40, 0xab93a0).
+0x2053	server	Match started	off	Handler 0xaba390 sets view-match mode ([0x1b77138]+0xAC): no 0x20D5, no load complete, no loading-screen cards. Spectators only.
+0x2069	server	Objective tracker status	sent	Mode sector / capture tracker (full-match-mechanics.md)
+0x206D	server	All loaded?	sent	Sets lobby +0x1C0 (0xab84f0 -> 0xa964b0); with the local load done raises UI event 0x33 (into the world); sent after champion select.
+0x2075	server	Objective tracker enabled	sent	
+0x2077	server	Usage: induction (cast bar) percent [Usage.RecvNotice_UpdateInductionPercent]	sent	full-protocol.tsv; ics (fase3-gm)
+0x2078	server	Recommended upgrades	sent	u32 list, from the champion's default loadout 0x10000478
+0x207A	client	(sent once the local player is recognised)	ignored	Missing on a replay without 0xEB.
+0x207B	server	Skill HUD: enable skill button [Skill.RecvNotice_EnableSkillButton]	sent	full-protocol.tsv; ics (fase3-gm)
+0x207D	client	slots 0, 1, 2, 3, 5, 6, 8, 9, 18	handled	full-protocol.tsv; ics (fase3-gm)
+0x2080	server	Account level / XP	sent	Login (opens the landing screen) and scorecard. u8 0 | level | prev | total | earned | bonus | to next | f32 pct | f32 prev pct: handler 0xA7DFB0 hands w0..w7 to Flash SendAccountEndOfMatchLevelAndXP as (w0, w1, w5, w2, w3, w4, w6, w7) and to the header SendAccountLevelAndXP(level, total, pct, to next) as (w0, w2, w6, w5). Up to fase3-in ics sent to next in w2 ([ics] account_level_layout, fase3-io). The XP text is cumulative / cumulative of the next level ([ics] xp_numbers; aggro-recall-scorepanel.md 3).
+0x2081	server	Currency balance	sent	Scorecard.
+0x2086	server	Shop transaction done	sent	u8 0 | u32 seq | u64 iid: unlocks the client's shop
+0x2089	client	slots 0, 1, 2, 3, 5, 6, 8, 9, 18	handled	full-protocol.tsv; ics (fase3-gm)
+0x208B	client	Shop purchase	handled	u32 artifact | u32 handle seq | u64 handle iid (no leading 0). ics/shop.py validates as the client's 0x9D1CF0
+0x208E	client	slots 0, 1, 2, 3, 5, 6, 8, 9, 18	handled	full-protocol.tsv; ics (fase3-gm)
+0x2090	server	NotifyListAmplifierSets	sent	u8 0 | u32 total | u32 max | u32 n | n x set. total = rows the Assembler shows (saved sets first, then empty client-only sets it can edit and save), max = slots that can be bought; ics sends total = the account's set slots (fase3-ie, store-amplifiers.md). Also a scorecard prerequisite.
+0x2092	server	UI: execute-skill error [UI.RecvNotice_ExecuteSkillError]	sent	full-protocol.tsv; ics (fase3-gm)
+0x2093	client	set protector icon	handled	full-protocol.tsv; ics (fase3-gm)
+0x2095	server	Item fulfilled ribbon	off	"Small ""upgrade unlocked"" ribbon. u8 0 | u32 key | u32 icon DID | StringInfo name: 0xA7EA00 queues (icon, name) by key (0xA746B0), 0xA26B50 -> 0x88F040(icon, name) -> RecvNotice_Ribbon_ItemFulfilled(i_didIcon, i_siName) -> UpgradeUnlockRibbon. fase3-ie sent it after a store purchase with the item's own DID as icon and no name (an empty ribbon); fase3-if: off ([ics] store_purchase_ribbon; store-fix.md 7.2)."
+0x2096	server	Usage: induction cancelled [Usage.RecvNotice_UpdateCancelledInductionForUserToFl	sent	full-protocol.tsv; ics (fase3-gm)
+0x2098	client	Lobby.RequestChangeAmplifierSet	handled	u32 set slot | u32 default-set DID; answer 0x204A; ics keeps the pick per champion (fase3-ie) and applies the set's augment stats in the match.
+0x209D	server	Master character list	sent	Login.
+0x20A0	server	Skill disable condition (slot, ErrorType, add/remove)	sent	u8 0 | u32 slot (-2 = all) | u32 ErrorType key | 16 bytes | u8 add (1) / remove (0). Keys: 0x1000003B Silenced, 0x10000050 Rooted, 0x1000006B Crippled (only for skills with 0x100007FD), others always block. Never sent.
+0x20A6	client	End page closed	handled	
+0x20A7	client	Shop sale	handled	u32 artifact | u32 slot 0..5 | handle
+0x20A8	server	StatusIcon: update status icon (+ stack count) [UI.RecvNotice_UpdateSkillStackCo	sent	full-protocol.tsv; ics (fase3-gm)
+0x20AD	server	Players accepted	sent	
+0x20AF	server	Enter match	sent	Sets lobby+0x4CB (no lobby pack loading, 0xa99f00): in lobby matches sent at the countdown's end. Packs named here join the match-data list that is unloaded at the match's end; start-up packs (0xA00000B3 = encounter records) are never named. Its encounter DID ([[0x1b763c0]+0xc4]) is what the patched HUD cave loads the minimap and shop from (fase3-hb); ics also names each champion's parent pack and a costume's base model pack.
+0x20B8	server	Item statuses	sent	Owned / locked champions.
+0x20B9	server	Soft currency reward	sent	Scorecard.
+0x20BA	client	Amplifier.UI_RequestAllAmplifierSets	handled	Empty body; answer 0x2090 (sent at login by AmplifierSetManager and by the amplifiers screen).
+0x20BD	server	Vitals: display floaty status (u64, u32) [Vitals.RecvNotice_DisplayFloatyStatus]	sent	full-protocol.tsv; ics (fase3-gm)
+0x20BE	client	Telemetry	ignored	Frame timings.
+0x20BF	client	slots 0, 1, 2, 3, 5, 6, 8, 9, 18	handled	full-protocol.tsv; ics (fase3-gm)
+0x20C0	server	Joined queue	sent	
+0x20C1	client	Create_CustomMatch	handled	full-protocol.tsv; ics (fase3-gm)
+0x20C3	client	leave queue *(new)*	handled	full-protocol.tsv; ics (fase3-gm)
+0x20C4	client	(unknown, after the end page)	ignored	Empty body; no reply needed.
+0x20C8	server	StatusIcon: add status icon (variant) [UI.RecvNotice_UpdateSkillStackCountString	sent	full-protocol.tsv; ics (fase3-gm)
+0x20CA	client	Accept match	handled	
+0x20CD	client	chat /tell (whisper) by name: target >= 3 chars and not the own name (0xa71b10)	handled	full-protocol.tsv; ics (fase3-gm)
+0x20CE	server	Usage: induction complete [Usage.RecvNotice_UpdateInductionComplete]	sent	full-protocol.tsv; ics (fase3-gm)
+0x20D0	server	StatusIcon: update tooltip [StatusIcon.RecvNotice_UpdateStatusIconTooltip]	sent	full-protocol.tsv; ics (fase3-gm)
+0x20D2	server	MapManager: add minimap marker for IID at position (type u32)	sent	full-protocol.tsv; ics (fase3-gm)
+0x20D5	client	Loading percent	handled	
+0x20D6	client	slots 0, 1, 2, 3, 5, 6, 8, 9, 18	handled	full-protocol.tsv; ics (fase3-gm)
+0x20DC	server	UI: execute-skill error (variant) [UI.RecvNotice_ExecuteSkillError]	sent	full-protocol.tsv; ics (fase3-gm)
+0x20E2	server	Inventory (champion)	sent	u32 n | n x (artifact, count) | amplifier-set tail (sent empty)
+0x20E3	client	§2.1	handled	full-protocol.tsv; ics (fase3-gm)
+0x20E4	client	Lobby champion pick (SelectCharacter)	handled	u32 DID | u8 | u32. Confirmed in game 2026-10-23; also the SkinPicker's costume choice after the lock (a costume variant of the same champion).
+0x20E8	server	Agent component obj+0x84: u32 + handle (?)	sent	full-protocol.tsv; ics (fase3-gm)
+0x20E9	server	StatusIcon: remove status icon [UI.RecvNotice_RemoveSkillStackCountString, Statu	sent	full-protocol.tsv; ics (fase3-gm)
+0x20EB	client	Join queue	handled	QueueKey from the encounter's template (0x86E060): (0, 0) when the template did not load on the client; the server answers 0x20E0 then.
+0x20ED	server	Champion data	sent	Login.
+0x20EE	client	Order: move / attack / skill	handled	u32 command (1 use the target object (fase3-hu), 2 attack or skill, 3 attack-move, 4 move, 6 stop, 9 skill) | u32 ability = skill slot (0 basic, 1-4 Q-R, 7 D, 8 F) | u64 target | position | u8.
+0x20F0	server	Agent component obj+0x84: u32, {u64, handle, u32, list}, u32 (?)	sent	full-protocol.tsv; ics (fase3-gm)
+0x20F2	client	Connect to lobby	handled	
+0x20F5	server	Play cinematic	sent	u8 0 | u32 mask | bit10 u32 | bit0 DID | bit1 u32 flags | bit2 u32 n + n x (u32 actor key, u64 IID) | bit5 u8 | bit3 u32 | bit4 u32 | ... (reader 0x878020). ics (fase3-gp) sends mask 0xF: flags 2 (binding check), {0, champion} (the client gives it key 1 = the scene's player actor) and bit3 = 8: while it plays 0xa9c490 hides (0x90F) the entities whose PerceivedType 0x1000019D & bit3 != 0 (bit4 = a mask on 0x10000B5B instead; bit5 picks the entity list); Character 8 = the champion.. fase3-ij (gh-ca-floor-spawn.md 4): the allied bots are bound too as keys 0x10000001..4 (the PvP intros' Player01..04 actors; 0xa9c610 with A = 0 rewrites only the local champion's entry) ([ics] cinematic_bind_allies)
+0x20F6	client	send chat text	handled	full-protocol.tsv; ics (fase3-gm)
+0x20F8	server	Skill cooldown	sent	u8 0 | u64 agent | u32 slot | f64 end time.
+0x20FA	server	Match found	sent	
+0x20FC	client	Amplifier.UI_SaveAmplifierSet	handled	The set struct; slot = the Assembler's ampSetID (a client-only set's id when new); answer 0x20C7 (the client updates the set only if that id is in its list) or 0x2052.
+0x20FF	server	Update encounter info	sent	The four lists of 0x2024 again (handler 0xA734D0, only after a 0x2024); raises Encounter.ResetMapSelectionList. Sent after a match and after a refused JoinQueue.
+0x2101	server	Queue eligibility	sent	u32 level, u32 ranked capacity, list encounters, list values, u32 ranked min level, u32 draft requirement (handler 0xA6AFA0). Login and menu refresh.
+0x2102	client	SelectCharacter (lobby pick)	handled	u32 variant | u8; sets the match's champion
+0x2104	server	Character level / XP	sent	Scorecard and the Champion Level Up ribbon. u8 0 | u32 champion | u32 character icon (C 0xA7E0A0 +0x150 -> Ribbon_CharLevelChanged first arg and the summary portrait; ics: the champion's grid_icon, [ics] level_up_icon; fase3-is 2026-10-30 15:30: tex384 drew nothing in the menu popup because it lives only in the champion's light pack, the grid icon is in the UI pack 0xA00000D0; levelup-ribbon-portrait.md) | StringInfo name | u32 level | u32 prev | u32 total XP | u32 earned | u32 bonus (P) | f32 pct | f32 prev pct (P) | u32 XP to next | accolade lists. fase3-ih ([ics] character_level_layout). fase3-is (2026-10-30): the u32 after the six accolade lists is the encounter (C 0xA7E0A0 param_21): when 0xA56DB0 finds its record the handler hands the (empty) accolade lists to Flash SendAccountEndOfMatchAccoladesEarned (0x8CEE70), which raises ACCOLADES_RECVD on a live scorecard; sent with the match's encounter ([ics] scorecard_level_encounter) and repeated 1.5 s after the scorecard's 0x212E ([ics] scorecard_accolades_resend_event 0x2104). 2026-10-30 13:18: reader 0x849680 checked (champion, icon, StringInfo, 8 u32, hash list (u8 size index + packed count), 3 u32 lists, bytelist, 2 u32 lists, u32 encounter, u8 first-map flag: ics' layout is aligned). Flag != 0 with no accolades makes 0xA56DB0 build the first-map accolade (0xA40B10) without the record lookup.
+0x2106	client	Amplifier.UI_RequestAllAmplifierBoutiqueData	handled	str8 = the client language (app vtable +0xDC; 0xA2FCD0 -> 0x883560 / 0x883340), sent by BoutiqueDataManager when first used (the amplifiers screen); answer 0x2107 prices (augments, mods, set slot item 0x49000AA2).
+0x210E	client	Contextual.UI_PurchaseContextualItem	handled	u64 boutique | u32 DID | str8 "SC" (Merits) / "HC" (Crisis Coins) | u32 price = the client's displayed cost (0xFFFFFFFF when it got no price) | str8 language (0xA46FC0 -> 0x8854D0 / 0x8852A0); answer 0x210C (+0x20B8, 0x2081; 0x2090 for a set slot) / 0x210D. The UI has no 0x210F listener (store-fix.md 3). fase3-if: paid at the server's price from the wallet of the client's currency (SC = Merits, HC = Crisis Coins); a different price (0xFFFFFFFF) -> 0x210D + a fresh 0x2107 ([ics] store_price_mismatch).
+0x2110	client	Contextual.UI_ConfirmContextualPurchase	handled	After a 0x210F price change; answer 0x210C. Never sent by this UI: no 0x210F listener (store-fix.md 3.3).
+0x2111	client	Contextual.UI_CancelContextualPurchase	handled	Drops the pending order. Never sent by this UI: no 0x210F listener.
+0x2107	server	Amplifier.NotifyContextualAmplifierData (boutique prices)	sent	u8 0 | u32 n | n x (u64 boutique id | u32 DID | str8 currency | u32 price) (handler 0xA57510, ids as %I64d text) -> BoutiqueDataManager, one BoutiqueData per DID: a price is kept only for the currency names "SC" (Merits) / "HC" (Crisis Coins), case ignored; any other name leaves it -1. The only price source of the client. fase3-ie named them "Merits": no price arrived. fase3-if: an "SC" entry (store_prices) and an "HC" entry (store_prices_hc) per augment / mod / set slot under one boutique id ([ics] store_boutique_currency_keys; store-fix.md).
+0x210C	server	Contextual.PurchaseContextualItemSuccess	sent	u8 0 | u64 boutique id (handler 0xA359B0, %I64d) -> Assembler: augment / mod -> OWNED_PENDING, complete dialog, asks 0x2106 again; set slot (type 5) -> DualCurrencyPurchaseCompleteDialog.
+0x210D	server	Contextual.PurchaseContextualItemError	sent	u8 0 | u64 boutique id | u32 error (handler 0xA35920): 0x10000069 InsufficientFunds, 0x10000068 GeneralError (Assembler error dialogs). fase3-if also answers a wrong 0x210E price with it (GeneralError) and a fresh 0x2107.
+0x210F	server	Contextual.PurchasePriceChanged	off	u8 0 | u64 boutique | u32 DID | (u64, u32, str8 currency, u32 initial, str8 order, u32 final) [P] (handler 0xA35A30). No AS2 listener: ignored by the UI; fase3-ie answered a wrong 0x210E price with it; fase3-if only with [ics] store_price_mismatch = "changed" or store_boutique_currency_keys = false (store-fix.md 3.3).
+0x2116	client	request account encounter stats	handled	full-protocol.tsv; ics (fase3-gm)
+0x211B	client	Entity attached (local player)	ignored	Its absence on a replay meant no local player.
+0x211D	client	request all achievement data	handled	full-protocol.tsv; ics (fase3-gm)
+0x211E	client	Acknowledge achievement displayed	handled	full-protocol.md
+0x211F	server	Pending achievement notifications	sent	Answer to 0x212E (empty table).
+0x2120	server	Achievement progress	sent	Login (the 5 trainee achievements) and match end (Tutorial n newly complete): u8 0 | table of progress entries | u32list deprecated.
+0x2124	client	Ask for pending rewards	handled	Answered with 0x2125.
+0x2125	server	Pending reward sets	sent	Answer to 0x2124 (and with 0x211F): u8 0 | u32 n | elements (set, source, -, item, qty, bestowal, u64 instance, icon, name). The client passes it to the UI only once per instance id.
+0x2127	server	StatusIcon: update tooltip (variant) [StatusIcon.RecvNotice_UpdateStatusIconTool	sent	full-protocol.tsv; ics (fase3-gm)
+0x2128	client	Claim reward (Continue)	handled	u32 reward set | u32 choice | u32 source | u64 instance | lists.
+0x212E	client	Ask for achievement banners	handled	Answered with 0x211F. Also the scorecard screen's AskForRibbons at its load start (WrapperMain, m_bAskForRibbons); after a match end it schedules the late 0x2188. fase3-is: also the scorecard chat summary ([ics] scorecard_chat_summary_delay).
+0x2136	client	Player ping	handled	Patched client also sends RankSkill as ping type 'RANK' (slot in the u64): ics ranks the skill
+0x213A	client	(sent once the local player is recognised)	ignored	As 0x207A.
+0x213D	server	HUD element event	sent	u8 0 | u32 element | u32 event | u32 highlight id | u32 highlight DID (MainHUD.RecvNotice_NotifyHUDElement). Events: 1 show (reveal animation the first time), 2 hide (on a skill button it hides the whole skill panel), 7 highlight, 8 highlight off, 9 arrow highlight. A Tutorial_Basic encounter starts with only the objective tracker 35 and the hints 32 shown (BaseHudElement). Highlight ids (gmUIHUDHighlightIDList): Q/W/E/R/passive '+' 15/7/11/12/9, skills Q 2 W 10 E 4 R 13 passive 17 D 3 F 16, vitals 25, Will 53, XP 24, minimap 20; drawn only by the skill panel, vitals, XP, minimap and a few others.
+0x2140	client	Conversation finished	handled	u32 instance (the 0x2001 instance id), sent when the conversation has played; ics starts the next queued one (fase3-gg)
+0x2148	client	name request (≥ 2 chars)	handled	full-protocol.tsv; ics (fase3-gm)
+0x214B	server	Completed encounters	sent	
+0x214E	client	TriggerWaitAfterReadyFlag	handled	full-protocol.tsv; ics (fase3-gm)
+0x2154	server	Protector icon slot	sent	u8 0 | u32 icon | u32 slot (scorecard.protector_icon_slot, unused).
+0x215C	server	ViewMatch: dampener counts [ViewMatch.RecvNotice_ViewMatch_UpdateDampenerCounts]	sent	full-protocol.tsv; ics (fase3-gm)
+0x215D	server	Account flags	sent	Login: u8 0 | u32 1 | u8 0.
+0x216A	server	Server preferences	sent	
+0x216E	client	User preference saved	handled	
+0x2178	client	request account standings	handled	full-protocol.tsv; ics (fase3-gm)
+0x217A	server	Kill feed entry	sent	u64 victim | u32 icon | u32 team | u64 killer | u32 team | list killer + assists; shown delayed, 4 rows x 5 s (full-match-mechanics.md)
+0x217F	server	End a skill slot's targeting indicator	sent	u8 0 | u32 slot | u8 interrupted. Serializer 0x83f690, handler 0xa5d070 -> 0xa4f0c0(slot, u8, 1, 0): frees the slot's decals, keeps the HUD targeting state. ics: at a Super Strength throw / drop ([ics] liftable_throw_indicator_messages, fase3-ij; throw-padlock-coredeath.md 1)
+0x2180	server	Start a skill slot's targeting indicator	sent	u8 0 | u32 slot. Serializer 0x839500, handler 0xa6d800: ends the shown slot, sets the targeting display's +0x60 = slot and draws 0xa39360 (range decal, stat-23 ring, cursor area kept on the cursor by 0xa29680) with no targeting-state gate (unlike 0xa5dab0, which the client scripts' node 0x10000056 reaches). ics: for the whole Super Strength carry (fase3-ij; throw-padlock-coredeath.md 1)
+0x2183	server	Chat: (StringInfo, StringInfo, u32, u32) (0xa4d140) (?)	sent	full-protocol.tsv; ics (fase3-gm) 2026-10-30 (tester 14:51, scorecard-rewards-side-panel.md): also the end screen's result / duration / rewards as four lines in the Scorecard view's chat window (this client has no side panel there), 2.5 s after the scorecard's 0x212E ([ics] scorecard_chat_summary). Handler 0xA5CF40 -> 0xA4D140: last u32 == -1 picks the wrapper channel (token 0x37DFC6C @ 0x10000010), else the current one (P).
+0x2188	server	Accolades	sent	Scorecard. Sent at the match end and again 1.5 s after the scorecard's 0x212E (fase3-ip, [ics] scorecard_accolades_resend): Flash AccoladesDisplay waits for ACCOLADES_RECVD, raised only when the accolades notice comes after every other scorecard piece (the scorecard asks for it before the header). fase3-is: C 0xA61DA0 returns before Flash when the accolade-record list (the 2nd list) is empty, so the empty copy never reached Flash (the fase3-ip resend had no effect); the late copy is now 0x2104 with the encounter. Lists after the StringInfo: list 1 unused, list 2 accolade records (0x48...), list 3 medal type 1-3, bytelist, lists 4-5 compared by 0xA344C0 (value vs best, P).
+0x218A	server	MapManager: teleport effects start/stop (u64) [MapManager.RecvNotice_UI_StopTele	sent	full-protocol.tsv; ics (fase3-gm)
+0x218B	server	Account tables (game settings)	sent	Login: FeaturedMap_PVP / FeaturedMap_BOTS settings.
+0x218C	client	UserActionMetric (UI dispatcher name, slot 0x128)	handled	full-protocol.tsv; ics (fase3-gm)
+0x2190	server	Header + protector icons	sent	Scorecard: u8 0 | 5 x u32 icon | u32 | u32 | StringInfo | StringInfo | u32 | u8.
+0x2193	client	request static standings	handled	full-protocol.tsv; ics (fase3-gm)
+0x2198	server	Root+0x90 counter (u64, u8) (same family as 0x2044) (?)	sent	full-protocol.tsv; ics (fase3-gm)
+0x219A	client	Kick_CustomMatch (two variants)	handled	full-protocol.tsv; ics (fase3-gm)
+0x219B	client	MovePosition_CustomMatch	handled	full-protocol.tsv; ics (fase3-gm)
+0x219E	server	Account standings	sent	Scorecard and the Ranked menu (answer to 0x2178). u8 0 + 10 u32: last played encounter, rank, previous rank, sub-rank, previous sub-rank, position, streak, previous streak, played, won. Handler 0xA37DC0 indexes a byte table by rank with no bounds check: a wrong value crashes the client (fase3-id).
+0x219F	server	Standings	sent	Scorecard. Tail of 5 u32: three to the tier builder 0xA4CA10, the 4th = minimum streak for a streak to show, the 5th to singleton +0x24.
+0x21A4	client	request leaderboards	handled	full-protocol.tsv; ics (fase3-gm)
+0x21A5	client	champion data again	handled	full-protocol.tsv; ics (fase3-gm)
+0x40000	server	Packet: welcome / ConnectRequest reply	sent	16-byte route id | BE f64 time | 8 | u32 | BE u32 | BE u32 connection id. Both connections.
+0x01000000	server	Packet: time (keepalive)	sent	BE f64 time every 2 s on the game connection; without it the client drops it after 60 s.
+0x1000000E	server	Notice: NotifyMatchEnded (in event 0x2)	sent	u32 winning team | u32 player team | f32 seconds | u32 tier | f32 target time. Equal teams = VICTORY.
+0x10000090	server	Notice DefeatStatusUpdated	sent	u32 state (2 dead, 4 alive) | u64 player; layout from static analysis. [ics] respawn_notices
+0x100000BC	server	Notice DefeatStatusUpdatedForEntity	sent	u64 agent | u32 killer type | u32 state | f64 time of the next state
+0x10000117	client	Notice: cinematic state (in event 0x2)	handled	u32 state | u32 cinematic DID; 4 = ended.
+0x1000015E	client	Notice: load complete (in event 0x2)	handled	Starts the intro cinematic after cinematic_delay.
+0x10000251	internal	Flash notice RequestPostMatchChanges	data only	Probably what sends 0x20BA.
+0x1000027F	server	Notice: tutorial hint (in event 0x2)	sent	u32 hint id | u8 force open.
+0x100002AF	server	Notice: StartTimeline (in event 0x2)	sent	f64 now (wall clock = the time packets'); Flash places a mark at (event time - (now + its own elapsed)) / 5 s * 12 px. Needed with 0x100002B1 before 0x100002AB / 0x10000424.
+0x100002B1	server	Notice: StartTimeline, 2 (in event 0x2)	sent	f64 now, as 0x100002AF.
+0x100002AB	server	Notice: AddTimelineEvent (in event 0x2)	sent	descriptor {Handle u32,u64 | u32 severity (1 high red, 2 medium, 3 low) | u32 icon | u32 icon2 | u8 tint | u32 team | f64 event time | u8 | u32 n {StringInfo, StringInfo, u32 audience}} | u32 0 | f64 now. Event time = now + (match time of the event - match time now); removed and re-added when the intro moves the start (timeline-kda-endscreen.md). 2026-10-30 (timeline-tooltip-camp-prespawn.md): [5] = the strip's icon, [6] = the hover tooltip's picture (Flash EventTimelineTooltip SetIcon(didExaminationIcon)), strings = its title / description. ics sends [6] = the unit's Character_Billboard_Icon 0x100001FC (drones 0x13000F9D, jungle / Raider 0x13001A37), [5] 0, our titles ([ics] match_timeline icon / strip_icon / title, match_timeline_icons).
+0x100002AC	server	Notice: remove timeline event / banner (in event 0x2)	sent	Handle {u32, u64}; handler 0xA48A50: the current banner if it matches, else the timeline event (also from the client's stored list).
+0x1000005B	server	Notice: match scorecard (Tab scoreboard, top-right K/D/A)	sent	u32 n | n x {StringInfo name | u64 account | u64 agent | u64 player | u32 champion | u32 team | f32 money | u32 level | u32 kills | u32 deaths | u32 assists | u8 bot}; 0xA4A4F0 -> Flash UI_UpdateMatchScorecard; PersonalScore shows the row of the controlled agent. Kills credited to a missile's champion or to the last enemy champion who hit within match_assist_window s.
+0x100002EB	server	Notice: ShowAnnouncement (in event 0x2)	sent	StringInfo | u32 billboard type (2 text, 9 MatchWin, 11 Team1Victory) | u32 src icon | u32 tgt icon | i32 src team | i32 tgt team | u8.
+0x100002EC	server	Notice: ClearAnnouncement (in event 0x2)	data only	Empty.
+0x100003F1	internal	Flash request: character level / XP	data only	Answered from the client's cache of 0x2104.
+0x100003F2	internal	Flash request: soft currency	data only	Cache of 0x20B9. Same number as the wagon behavior property.
+0x100003F4	internal	Flash notice RequestPendingPostMatchRewards	data only	No AS2 code sends it.
+0x100003F5	internal	Flash notice ClaimPostMatchReward	data only	Makes the client send 0x2128.
+0x100003FA	internal	Flash request: account level / XP	data only	Cache of 0x2080.
+0x10000402	internal	Flash notice RewardSetsData	data only	C++ -> Flash, from the 0x2125 handler.
+0x10000415	internal	Flash notice AllPendingAchivementBanners	data only	After 0x211F.
+0x10000424	server	Notice: AddTimelineBanner (in event 0x2)	off	victory_timeline_banner.
+0x1000042E	internal	Flash notice RequestAllPendingRewardlessAchievementNotifications	data only	Makes the client send 0x212E.
+0x1000042F	internal	Flash notice RequestPendingRewardUpdateFromServer	data only	Makes the client send 0x2124.
+0x1000049B	internal	Query InqSuperBannerVideoForAchievement	data only	Reads 0x10000BCD of the achievement record.
+0x100004D6	server	Notice floaty currency over an entity	sent	u64 entity | f32 amount (probable): '+N credits'
+0x100004E6	internal	Flash request: accolades	data only	Flash ScorecardManager.Init / AccoladeManager.Init ask for it; C++ dispatcher 0x911D30 (vt+0x3C) -> 0xA1A190 replays the accolades cache (manager 0xA12D50 +8: encounter, ranked byte, champion, lists, filled by 0x2104 / 0x2188 when 0xA56DB0 succeeds) through 0x8CEE70, so Flash always gets an accolades notice at Init (it is never the last piece: the header is asked after it). 2026-10-30 tester report 13:18 (scorecard-summary-tab-conditions.md 2).
+0x204B	server	Match launch warning	sent	u8 0 | f64 start | f64 end | u32 room: game-clock seconds; the costume (skin) countdown, LaunchWarning.as callbacks at end-10/-5/-2/-1/end.
+0x20EA	client	Skill script events	handled	u32 slot | u32 count | u32 class 1 | u32 event | u8 has-params 0 (sender 0x88B280 <- 0xA23510). Only two events (skill-execution-model.md 1.2, C): 0x10000023 targeting begun (0xA26420, every non-instant slot) and 0x10000009 targeting cancelled (only skills with bool 0x10000A46: Green Arrow R). ics raises it on the slot's script when the record accepts it ([ics] skill_client_events_filtered + script_accept_filter, fase3-ia): Green Arrow R 0x3400040C, Deadshot R 0x34000694, Dex-Starr W 0x340006B7, Flash R 0x34000217.
+0x2006	server	Add map note (ping / marker)	off	u8 0 | u32 type | Handle{u32, u64} | u32 | u32 | {u32} | u32 (handler 0xa56c90). Categories: 1 PING, 3 TURRET, 18 ALERT_PING_INGAME, 21 RETREAT_PING_INGAME, 29 BEACON. Middle fields untraced.
+0x2039	server	Announcer / context dialog	sent	u8 0 | u32 flag | u32 channel | PropTable (0x10000806 event, 0x10000812 / 0x10000811 IIDs, 0x1000081D / 0x1000081C teams). Chat /anunciador N to test; ids mapped by ear in [ics] announcer_events.; with 0x100003BD = a line key it plays that line from the channel's set (0xa596b0), used for countdown / wave / jungle lines (fase3-hr)
+0x20C9	server	Skill script event	sent	u8 0 | u64 agent | u32 slot | u32 1 | u32 event | u8 0 (serializer 0x849ce0, handler 0xa1d400 -> 0xa16e60): raises a ScriptEvent on the client copy of the slot's skill script. ics sends 0x1000001D (skill used) after each cast, 0x10000009 on a refusal: it ends the range indicator (fase3-hd).
+0x20F9	server	Skill availability event	sent	u8 0 | u64 agent | u32 slot | u8 available (serializer 0x839550, handler 0xa2a1b0): raises ScriptEvent 0x100000B6 (0) / 0x100000B7 (1) with parameter SkillSlot 0x31D944 on the client copy of the slot's skill script (0xa16e60). The Super Strength throw sub-skills' client script 0x340001A3 starts the slot's targeting indicator on 0x100000B6 and ends it on 0x100000B7; ics sends 0 when a carry is ready to throw, 1 at the throw / drop ([ics] liftable_throw_indicator, fase3-ih; throw-truck-padlock.md 1). fase3-ij: that start (node 0x10000056 -> 0xa5dab0 with flag 0) draws only when the slot is the HUD controller's current targeting slot (+0x90 +0xEC), so nothing showed during a carry; 0x2180 / 0x217F now draw / end it (throw-padlock-coredeath.md 1).
+0x009F	client	Script RPC (emote)	handled	u32 message | u32 n | blob (captured fase3-hm, no leading u8). Emote = message 0x81970006 (CEmoteSystem 0x28F:1, Alt+Numpad1-5), blob u32 emote record DID (0x40000241 Joke, 0x40000240 Taunt, 0x40000242 Laugh, 0x4000023F Dance, 0x40000EE6 Oath); ics raises the champion graph's Emote_* event (fase3-hk). Other messages logged.
+0x202A	server	Load announcer set into dialog channel 3	sent	u8 0 | u32 set DID (exec 0x8b2230 -> 0xa1b400); ics loads 0x4000047A for Crime Alley v AI before the shared countdown lines (fase3-hr)
+0x2008	server	Event for one of an entity's client scripts	sent	u8 0 | u64 entity | u32 event | u32 script DID (handler 0xAA1BF0): the structure under-attack ping 0x100000E7 / 0x34000838 (fase3-hw)
+0x8B	server	Destructible: rebuild intact pieces	implemented	u8 0 | u64 IID to the object (exec 0x6982B0, handler 0x631050 -> 0x6303F0 pieces, 0x630FC0 bodies / render). Needed for creation type 8 destructibles (Crime Alley vehicles): the client builds pieces itself only for types 6 / 9 (destructible-vehicles.md, fase3-hz) fase3-id: sent again 0.05 s after a Super Strength attach (0x630FC0 checks the containment parent first: pieces' render instances under the parent's render node via 0x630BF0 -> 0x7602A0) and right after the detach (world again) (liftable_attach_rebuild / liftable_detach_rebuild; C path, P result).
+0x10D	server	Destructible: one object's piece state	data only	handler 0x630160 -> 0x62FB20; broken / moving pieces (layout partly decoded, destructible-vehicles.md)
+0x138	server	Destructible: every object's state at join	data only	handler 0x631550, global list 0x18628CC (destructible-vehicles.md)
+0xC2	server	Web ticket (iface d4bce8af)	no	Not sent. u8 0 | GUID | u32 shard; stored by 0x420920 in the app's web-ticket object; the UI_RequestWebTicket listener 0x420B90 answers the store / amplifier screens with it at once (zero GUID when never sent), then asks the server with client 0x0095. Not needed for the local store page (store-amplifiers.md, store-fix.md 2.1).
+0x0095	client	Web ticket request (after UI_RequestWebTicket)	handled	Empty body, dest 0x0600000000000415. Built only by 0x692DF0, called only by the web-ticket listener 0x420B90 after it answered the UI from the stored ticket: one per store (SHOP) open (the Assembler's store links are dead code). The answer would be 0xC2. fase3-ie left it in unhandled.log; fase3-if logs "web ticket request (0x95)" in server.log and sends nothing (store-fix.md).
+0x2083	server	Order buffer: current action slot	no	u8 0 | u32 (serializer 0x839500, exec 0x8bc730, handler 0xa1a5a0): [[root+0x90]+0xC0] = u32, i.e. the order buffer (controller+0x48) +0x78 that 0x863860 compares with a skill order's slot (-2 holds every skill order, another slot holds skills with bool 0x10000704). Not sent by ics (default -1). liftable-carry-throw-press.md 1.

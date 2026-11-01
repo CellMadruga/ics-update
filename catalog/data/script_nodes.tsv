@@ -1,0 +1,445 @@
+id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
+0x10000000						1	1	not started	used by scripts, no registration found in the exe
+0x10000001		0x14	0xAB5350			0	0	data only	
+0x10000002	GetAttribute	0xC	0x981240			9	7	partial	
+0x10000003		0x18	0x982660			220	185	data only	
+0x10000004		0x40	0x9973B0	0x15FAF44	{r4} r4 r4 O O O	1	1	data only	
+0x10000005	SetSkillAttached	0x28	0x99C9A0			0	0	handled	fase3-hk: raises 0x10000022 (a live skill target is set) or 0x10000014 on its own script; Grab missile 0x340002C1 T12 -> S9 (attach + shooter pull graph event 0x10000331) (P)
+0x10000006		0x3C	0x9987A0	0x15FB6C4	B O O	2	2	data only	
+0x10000007	StartCooldown	0x58	0x99D1E0	0x15FD638	B O O O r4 O O O O O r4 r1 O	181	145	partial	run by the new server (ics/script_runtime.py)
+0x10000008		0x4C	0x9CA6F0	0x15FE0A4	{B O O r1 r1 r1 r1 O r4 r4} r4 O O {r4}	56	49	data only	
+0x10000009		0x3C	0x99C8C0			8	5	data only	
+0x1000000A		0x10	0x981EE0			30	20	partial	run by the new server (ics/script_runtime.py)
+0x1000000B		0x3C	0x99B460	0x15FC8FC	B O O O r1 r1 r1 r1 r4 r4 O O O O O r1	11	11	data only	
+0x1000000C		0x28	0x997880			12	12	data only	
+0x1000000D		0x40	0x997410	0x15FAF44	{r4} r4 r4 O O O	3	3	data only	
+0x1000000E		0xC	0x9819E0			345	249	partial	run by the new server (ics/script_runtime.py)
+0x1000000F		0xC	0x9822A0			5	5	data only	
+0x10000010	Delay	0x2C	0x998580	0x15FB694	B O O	21	21	partial	run by the new server (ics/script_runtime.py)
+0x10000011	GetPosition	0x3C	0x998800	0x15FB6F4	B O O	51	43	partial	run by the new server (ics/script_runtime.py)
+0x10000012	StopScriptletKey	0x28	0x999DE0			4	4	handled	fase3-hk: client 0x993DB0 -> 0x588A80 -> 0x57C4B0(key, signal 1); ics re-sends 0x8D with the key's live instance and signal bit 1 (P for the wire form). Scorched Earth's circle 0x100008AB
+0x10000013						1	1	not started	used by scripts, no registration found in the exe
+0x10000014	IsValidPosition	0x20	0x9991A0			6	6	partial	run by the new server (ics/script_runtime.py)
+0x10000015		0x8	0x981B40			1	1	data only	
+0x10000016		0xBC	0x99A850	0x15FC44C	B r4 r4 r4 r4 r4 r4 O O O O O O r1 r4	2	1	data only	
+0x10000017		0x1C	0x9B78C0			1	1	data only	
+0x10000018		0x78	0x99D2B0	0x15FD6C8	B O r4 O	67	62	partial	RemoveStatus, run by the new server (ics/script_nodes.py). The self form (-, -, -, -)[0 0 0] removes the running status once the current chain has run, so the nodes after it still run (Meltdown's jump decrements the pulses left; 10 status scripts have such nodes; P for the VM rule; meltdown-moving-target.md 6.5, fase3-if)
+0x10000019		0x10	0x980E70			323	241	data only	
+0x1000001A		0x44	0x99BE80	0x15FCDFC	B O O O O r4 r1 r4 r1 O	10	6	data only	
+0x1000001B		0x24	0x99C810			2	2	data only	
+0x1000001C		0x20	0x99C2E0			0	0	data only	
+0x1000001D	ApplyEffects	0xDC	0x99B4C0	0x15FC8FC	B O O O r1 r1 r1 r1 r4 r4 O O O O O r1	83	66	partial	run by the new server (ics/script_runtime.py). In a status an unset source (op4) is the status' applier (of the 21 status scripts with ApplyDamage that read EffectSource, 19 leave it unset); a status' damage with value b = 1 (triggers on-hit effects) from a champion's Q/W/E/R raises that skill hit 0x1000008A on the applier after the current chain (meltdown-moving-target.md 6.2 / 6.3, fase3-if)
+0x1000001E	IsValid	0x20	0x99C0C0			9	9	partial	run by the new server (ics/script_runtime.py)
+0x10000020		0x68	0x9971D0	0x15FAE24	B O O	2	2	data only	
+0x10000022	HideTargetingIndicator	0x28	0x99B790			1	1	data only	Client node: ends a skill's range indicator (0xab6330 -> 0xa4f0c0), run by the client targeting script on 0x1000001D / 0x10000009 (targeting-indicator-and-structures.md).
+0x10000024	GetDetected	0x3C	0x99BA20	0x15FCC4C	B O O r4	192	147	partial	run by the new server (ics/script_runtime.py)
+0x10000025		0x7C	0x999700			1	1	data only	
+0x10000026	Cast	0x40	0x998B40	0x15FB844	B O O O r4	204	172	partial	run by the new server (ics/script_runtime.py)
+0x10000027	ApplySkill	0x108	0x9B7A40	0x15FDFDC	{B r4 O O O O O O r1} O O O O r1 r1	67	59	partial	run by the new server (ics/script_runtime.py)
+0x10000028	IsHostile	0x3C	0x999250	0x15FBAE4	B r4 O O	6	4	partial	run by the new server (ics/script_runtime.py)
+0x10000029	IsKind	0x24	0x9990F0			96	75	partial	run by the new server (ics/script_runtime.py)
+0x1000002B		0x4C	0x9B7060	0x15FAC14	B O O r4 r4 r4 r1	0	0	data only	
+0x1000002C		0x5C	0x997520	0x15FAFA4	O O r1	3	3	data only	
+0x1000002D		0x58	0x99AAE0	0x15FA4E8	r4	1	1	data only	
+0x1000002E		0x5C	0x99D800			0	0	data only	
+0x1000002F		0x44	0x99CE30	0x15FD4E4	B O r1 r4 r4 r4	2	2	data only	
+0x10000030		0x40	0x9999D0	0x15FBDE8	B O O r1	0	0	data only	
+0x10000031	Spend	0x5C	0x9B7630			46	35	handled	fase3-ho: adds its signed amount to vital values[0] on its entity (Rev +1, Will costs negative)
+0x10000033		0x4C	0x9CA880	0x15FE104	B r4 O O {r4} r1 r1	16	14	data only	
+0x10000034	RunScriptlet	0x54	0x9CA8E0	0x15FE13C	B O {r4}	199	147	partial	run by the new server (ics/script_runtime.py)
+0x10000035		0x14	0xAB54D0			15	12	data only	
+0x10000036		0x40	0x998BA0	0x15FB874	B r4 O O	0	0	data only	
+0x10000037						11	6	not started	used by scripts, no registration found in the exe
+0x10000039		0x34	0x9B74E0	0x15FC6EC	B r4 r1 O O	362	50	data only	
+0x1000003A		0x10	0xAB5550			6	1	data only	
+0x1000003B		0x10	0xAB5450			99	27	data only	
+0x1000003C		0x3C	0x997630	0x15FB004	B O O r1	11	3	data only	
+0x1000003D		0x24	0x998FE0			15	5	data only	
+0x1000003E	IsAlive	0x20	0x99C010			103	90	partial	run by the new server (ics/script_runtime.py)
+0x1000003F	FaceTarget	0x5C	0x99C470	0x15FD0F8	B O r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r1 r4 r4 r4 r4 r4 r4 r4 r4	6	5	partial	run by the new server (ics/script_runtime.py)
+0x10000040		0xC4	0x9B76A0	0x15FDEC0	{B r4 O O r1 O} O O r4 O	118	33	data only	
+0x10000042		0x3C	0x99BFB0	0x15FCF78	O O r4 O r4	12	12	data only	
+0x10000043		0x10	0xAB55D0			0	0	data only	
+0x10000044						6	3	not started	used by scripts, no registration found in the exe
+0x10000045		0x24	0x996E30			0	0	data only	
+0x10000046		0x14	0x980CF0			15	2	data only	
+0x10000047	FindTargetsInRadius	0xC8	0x99B720	0x15FCA74	B r1 r4 O O O O r4 O r4 O O r4 r1 r1 r1	63	22	partial	run by the new server (ics/script_runtime.py). The relation side is the context's source (client half 0x9CCE60: SELF from the owner block 0x44C5C0, the team from the source descriptor 0x991F60 -> 0x854050); in a status, its applier; SELF (excluded unless include-self, the radius added, the box heading) stays the owner (meltdown-moving-target.md 3.3 / 6.2, fase3-if)
+0x10000048		0x8	0x9808F0			0	0	data only	
+0x10000049		0x10	0x981490			3	2	data only	
+0x1000004A		0x10	0x980EF0			0	0	data only	
+0x1000004B		0x3C	0x998860	0x15FB724	B O O	68	15	data only	
+0x1000004D		0x10	0x982110			34	6	data only	
+0x1000004E	RaiseGraphEvent	0x28	0x99C650			62	49	partial	run by the new server (ics/script_runtime.py)
+0x1000004F		0x88	0x997750	0x15FB064	B O O O	0	0	data only	
+0x10000050	InitSkill	0x40	0x99BAE0	0x15FCCAC	B O O r4	20	20	partial	run by the new server (ics/script_runtime.py)
+0x10000051		0x78	0x9CAB00	0x15FE39C	B r4 O O {r4}	3	2	data only	
+0x10000052	IsWithinAngle	0x84	0x99C390	0x15FD038	B O O O O O O	33	32	partial	run by the new server (ics/script_runtime.py)
+0x10000053		0x10	0x980870			0	0	data only	
+0x10000054		0x90	0x9CAC30	0x15FE248	B O {r4} O r4 r4	0	0	data only	
+0x10000055		0xC	0x981C90			2	2	data only	
+0x10000056	ShowTargetingIndicator	0x28	0x99B530			0	0	data only	Client node: starts a skill's range indicator (0xab62d0 -> 0xa5dab0), on 0x10000023 (targeting-indicator-and-structures.md).
+0x10000057		0x24	0x99C700			23	20	partial	run by the new server (ics/script_runtime.py)
+0x10000058	SetVariable	0x3C	0x999C10	0x15FBF38	B O O r4	849	494	partial	run by the new server (ics/script_runtime.py)
+0x10000059		0x194	0x9CABC0	0x15FE210	{B r4 O O {r4} r1 r1} O O r1 r4 r4	0	0	data only	
+0x1000005A	Offset	0x58	0x9984C0	0x15FB5A4	B O r4 r1	8	8	partial	run by the new server (ics/script_runtime.py)
+0x1000005B		0x48	0x997DF0	0x15FB334	B O O	3	3	data only	
+0x1000005C		0x28	0x99A7A0			0	0	data only	
+0x1000005D		0x28	0x99E0B0			0	0	data only	
+0x1000005E	LaunchMissile	0xE0	0x99B9A0			18	17	partial	run by the new server (ics/script_runtime.py). A new missile a status launches (class value, op0 unset) is its applier's (ShooterIID, 0x100004E2, team) and starts at the status' owner: Meltdown's jump 0x340002BF; a status launching its own owner (knock-ups 0x340003E7 / 0x34000655) keeps it as the shooter (meltdown-moving-target.md 6.2, fase3-if)
+0x1000005F	LaunchTetheredMissile	0x114	0x99B930	0x15FCC1C	B O O r4	1	1	handled	fase3-hk: the cast end (2) waits for the tethered missile (cast_waits_tether); its own script gets 0x10000005 when back. Value 0x3F000000 = f32 0.5 tether factor
+0x10000060		0x124	0x99B210	0x15FC7DC	B r4 r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r4 O O O O O O r4 r1	2	2	data only	
+0x10000061		0x24	0x99E000			0	0	data only	
+0x10000062	RedirectMissile	0x40	0x99D610	0x15FD878	B O O O O r1 O r4 r4	20	8	partial	run by the new server (ics/script_runtime.py)
+0x10000063		0x28	0x99AE10			4	4	data only	
+0x10000064		0xC	0x981810			0	0	data only	
+0x10000065		0x44	0x99A5D0	0x15FC2FC	B O O r1	3	3	data only	
+0x10000067		0x10	0x980F70			12	4	data only	
+0x10000068		0x3C	0x997290	0x15FAE84	B O O	11	6	data only	
+0x10000069		0x8	0x980960			0	0	data only	
+0x1000006A	HasStatus	0x24	0x998410			11	9	partial	run by the new server (ics/script_runtime.py)
+0x1000006B	RaiseEvent	0x78	0x999A30	0x15FBE18	B O O	65	45	partial	run by the new server (ics/script_runtime.py)
+0x1000006D		0xA0	0x9CA680	0x15FE2DC	B O O O r1 r4 r4 r4 r4 r4 r4 r4 {r4} {r4} r1 r4 r1	0	0	data only	
+0x1000006E		0x24	0x99BD20			73	15	data only	
+0x1000006F	DisableCollision	0xC	0x981BB0			100	72	implemented	Removes the run's own collision hold from the script's own entity (the missile for a missile script; client 0x97D860 -> 0x976990 holder list); the body leaves collision only with no holder left. Champions / units / structures / props stay in collision by template (P). fase3-ig: was a flag on the shooter / dasher that made it unhittable (Grab never hit Robin after his Vault Kick)
+0x10000070	EnableCollision	0xC	0x981A50			110	80	implemented	Adds the run's collision hold (16-byte run key) on the script's own entity (client 0x97D720 -> 0x976990); paired with the same run's DisableCollision (dashes, missiles). 2026-10-30 (ca-ring-bodies-strip-layers.md 1.2, C): a hold is the only way the client builds a unit's collision body (0x976990 / 0x9754A0 -> 0x9793F0, key 0x4934AE2); with ics only hosted missile scripts do it, never a champion / minion / structure
+0x10000072		0x24	0x999090	0x15FA308		6	5	data only	
+0x10000073		0x8	0x9810E0			0	0	data only	
+0x10000075		0x28	0x99CA50			18	4	data only	
+0x10000076		0x8	0x981420			0	0	data only	
+0x10000077						3	3	not started	used by scripts, no registration found in the exe
+0x10000078		0x28	0x9997B0			3	3	data only	
+0x10000079						4	2	not started	used by scripts, no registration found in the exe
+0x1000007A	HitEffect	0x90	0x9CACA0	0x15FE13C	B O {r4}	36	28	partial	run by the new server (ics/script_runtime.py)
+0x1000007B		0x3C	0x998CC0	0x15FB9C4	O r4	72	26	data only	
+0x1000007C		0x3C	0x9982A0	0x15FB544	B O O O r1	17	7	data only	
+0x1000007D		0x3C	0x99E160	0x15FDCFC	r4 O r4	3	3	data only	
+0x1000007E		0x3C	0x999BB0	0x15FBED8	B r4 r4 O r1 r1	1	1	data only	
+0x1000007F		0x3C	0x99E1C0	0x15FDCFC	r4 O r4	3	3	data only	
+0x10000080		0x54	0x99DA40	0x15FDA2C	B O O O	10	4	data only	
+0x10000081		0x3C	0x999910	0x15FBD84	B r4 O O	19	14	data only	
+0x10000082		0x58	0x998C00	0x15FB8A4	B O O	761	56	data only	
+0x10000083		0x28	0x999650			14	3	data only	
+0x10000084		0x114	0x9C27D0			0	0	data only	
+0x10000085		0x100	0x99B6B0	0x15FCA44	B r1 r4 r4 r4 O O O O O O O O O r4 r4 r1 r1 r1	75	62	data only	
+0x10000086		0x28	0x99AC50			0	0	data only	
+0x10000087		0x40	0x99A740	0x15FC44C	B r4 r4 r4 r4 r4 r4 O O O O O O r1 r4	0	0	data only	
+0x10000088		0x24	0x9986F0			1	1	data only	
+0x10000089	SetSlotSkill	0x5C	0x99DEE0	0x15FDC9C	B O O	3	3	implemented	Slot = the record's 0x100000E6; stats over the base slot's; base instance kept; 0x100000A9 after (fase3-ht)
+0x1000008A		0x28	0x99A970			0	0	data only	
+0x1000008B		0x44	0x99A630	0x15FC44C	B r4 r4 r4 r4 r4 r4 O O O O O O r1 r4	0	0	data only	
+0x1000008E	ClearSkillStatOverride	0x28	0x99DF40			6	6	implemented	Also restores a swapped slot (SetSlotSkill revert, fase3-ht)
+0x1000008F	AttachEntity	0xAC	0x998230	0x15FB454	B O O r4 O r4 r1 O r1 O O	7	7	data only	AttachEntity(SELF = the holder, object, local offset, out handle) [attach point, u8, u8, u8]. Client side the containment attach (0xB0 flag 0x04, reader 0x55E290) carries only u32 point, u8, bool: the offset (vehicle (0, 0, 2.5), rock (0, 1.4, 1.4)) never reaches the client (vehicles-carry-collision.md 1.2).
+0x10000090		0x2C	0x99A110	0x15FC11C	B O O r4 r4 r4	6	6	data only	
+0x10000092		0x3C	0x9B7960			2	2	data only	
+0x10000093		0x90	0x9B75B0			0	0	data only	
+0x10000095						4	2	not started	used by scripts, no registration found in the exe
+0x10000097		0x30	0x99D6D0	0x15FD8A8	B O O r4	25	19	partial	run by the new server (ics/script_runtime.py)
+0x1000009B						4	2	not started	used by scripts, no registration found in the exe
+0x1000009C		0x28	0x981710			25	7	data only	
+0x1000009E		0x40	0x99B840	0x15FCB30	B r4 O O O O O O r4 O O r1 r1 r4	0	0	data only	
+0x1000009F	LoadSkillStats	0x38	0x9CAD70			118	95	partial	run by the new server (ics/script_runtime.py)
+0x100000A0		0xA4	0x9CA750	0x15FE33C	B r1 r4 O r4 {r4}	5	5	data only	
+0x100000A1		0x3C	0x99A0B0	0x15FC0BC	B r4 r4 r4 r1 r4 r4 r4 r4 O O O O	0	0	data only	
+0x100000A3		0x40	0x99B5E0	0x15FCA14	B O O O O O O O r4 r1 O	11	11	data only	
+0x100000A4	HasStatus	0x58	0x99C1D0	0x15FD008	O O O O O r1 r1	9	9	partial	run by the new server (ics/script_runtime.py)
+0x100000A5		0x24	0x998A30			14	14	data only	
+0x100000A6		0x44	0x99D310	0x15FD728	B O O O r4 r4 O r1	36	17	data only	
+0x100000A7		0xF0	0x99D240	0x15FD638	B O O O r4 O O O O O r4 r1 O	22	21	data only	
+0x100000A8		0x90	0x99D730	0x15FD8A8	B O O r4	11	11	data only	
+0x100000AA		0x58	0x9CA940			0	0	data only	
+0x100000AB						1	1	not started	used by scripts, no registration found in the exe
+0x100000AC		0x14	0x9818F0			0	0	data only	
+0x100000AD		0x28	0x999F40			5	4	data only	
+0x100000AE		0x8	0x981150			0	0	data only	
+0x100000AF		0x10	0x9817A0			14	4	data only	
+0x100000B0		0x28	0x999CD0			16	7	data only	
+0x100000B1		0x10	0x980C70			7	5	data only	
+0x100000B2		0x24	0x99B160			2	2	data only	
+0x100000B3		0x28	0x99B0B0			1	1	data only	
+0x100000B4						1	1	not started	used by scripts, no registration found in the exe
+0x100000B6						2	2	not started	used by scripts, no registration found in the exe
+0x100000B7						16	3	not started	used by scripts, no registration found in the exe
+0x100000B8		0x28	0x998300			22	5	data only	
+0x100000BA		0x40	0x9983B0	0x15FB574	B O O O	0	0	data only	
+0x100000BB		0x5C	0x999540	0x15FBD54	B O O O	4	4	data only	
+0x100000BC						5	3	not started	used by scripts, no registration found in the exe
+0x100000BD		0x28	0x998E80			0	0	data only	
+0x100000BE		0x54	0x99DB00	0x15FDABC	O O	0	0	data only	
+0x100000BF		0x3C	0x99E220	0x15FDCFC	r4 O r4	0	0	data only	
+0x100000C0		0x10	0x981FC0			0	0	data only	
+0x100000C1		0xC	0x980AB0			4	4	data only	
+0x100000C2		0x24	0x998010			2	2	data only	
+0x100000C3		0x24	0x997F60			2	2	data only	
+0x100000C4		0x20	0x997E50			0	0	data only	
+0x100000C5		0x3C	0x997F00	0x15FB424	B O O	76	32	data only	
+0x100000C6		0x9C	0x99C400	0x15FD038	B O O O O O O	0	0	data only	
+0x100000C7		0x48	0x99A290	0x15FC1AC	B O O r1	1	1	data only	
+0x100000C8		0x28	0x999E90			7	6	data only	
+0x100000C9						1	1	not started	used by scripts, no registration found in the exe
+0x100000CA		0x78	0x99D480	0x15FD788	B O r4 O O O O O O	12	11	data only	
+0x100000CB		0x10	0x9811C0			1	1	data only	
+0x100000CC		0xC	0x980B90			11	2	data only	
+0x100000CD		0x28	0x9980C0			0	0	data only	
+0x100000CE		0x5C	0x99BCC0	0x15FCDFC	B O O O O r4 r1 r4 r1 O	34	26	data only	
+0x100000D0		0x24	0x998980			1	1	data only	
+0x100000D1		0x60	0x9CAAA0	0x15FE36C	B O {r4} r4 r4 r1 r1 O r1 r4	23	3	data only	
+0x100000D2		0x8	0x981D90			0	0	data only	
+0x100000D7		0x108	0x9C2750			0	0	data only	
+0x100000D8		0x2C	0x99CCC0	0x15FD454	B O r4 r4	12	11	data only	
+0x100000D9	AddStacks	0xBC	0x9B79D0	0x15FD5D4	B r4 O O O O O O r1	0	0	implemented	Sets the ABSOLUTE stack count of a one-instance status (the decays pass --GetStackCount); 0 removes it (status_stack_model, skill-mechanics-recipes.md 1, fase3-ht)
+0x100000DA		0x3C	0x99D180	0x15FD5D4	B r4 O O O O O O r1	4	4	data only	
+0x100000DB		0x48	0x999B50	0x15FBEA8	B O O	8	8	data only	
+0x100000DC		0x24	0x998F30			0	0	data only	
+0x100000DD		0xE4	0x9B7850	0x15FDF20	{B O O O O r1 r4 O O O} r4 O r1 r4 r4	0	0	data only	
+0x100000DE		0x3C	0x997D90	0x15FB2D4	B r4 O r1 O r4	0	0	data only	
+0x100000DF		0x24	0x99BDD0			10	10	data only	
+0x100000E1		0x24	0x99C230			5	5	data only	
+0x100000E2		0x28	0x99CEF0			78	69	partial	run by the new server (ics/script_runtime.py)
+0x100000E4		0x28	0x99B2F0			0	0	data only	
+0x100000E5		0x44	0x99DC10	0x15FDB7C	B O r4 O r1 O	1	1	data only	
+0x100000E6		0x24	0x99DE30			0	0	data only	
+0x100000E7		0x44	0x99D4E0	0x15FD788	B O r4 O O O O O O	0	0	data only	
+0x100000E8		0x3C	0x9985E0	0x15FB694	B O O	0	0	data only	
+0x100000EA		0xD4	0x99B640	0x15FCA14	B O O O O O O O r4 r1 O	2	2	data only	
+0x100000EB						4	3	not started	used by scripts, no registration found in the exe
+0x100000EC		0x28	0x998DD0			0	0	data only	
+0x100000ED		0x28	0x99DB60			1	1	data only	
+0x100000EE		0x38	0x99AA80	0x15FC53C	B r4 O O O	0	0	data only	
+0x100000EF		0x20	0x999310			18	14	data only	
+0x100000F1		0x2C	0x997820	0x15FB154	B O O O r1	4	4	data only	
+0x100000F3		0x8	0x9813B0			0	0	data only	
+0x100000F5		0x40	0x99BBA0	0x15FCD0C	B O r4 O	2	2	data only	
+0x100000F6		0x3C	0x996F40	0x15FAD64	B O O	0	0	data only	
+0x100000F7		0x40	0x996EE0	0x15FAD34	B O O r1	0	0	data only	
+0x100000F9		0x3C	0x9981D0	0x15FB454	B O O r4 O r4 r1 O r1 O O	0	0	data only	
+0x100000FA	SetSkillStatOverride (P)	0x9C	0x99C5E0	0x15FD158	B O O O O r1 r4 O O O	25	20	ignored (logged, nothing sent)	Server-only: vtable slots 7 and 10 are purecall 0x134D420 (no client execute). Values: 0 = skill slot (0xFFFFFFFF = this skill), 11 = a TFX DID (AWW passive 0x34000265: slots 1-3 with 0x1300148F-91, the empowered-skill effects; counterpart ClearSkillStatOverride), 13 / 14 = a pair (Super Strength 0x34000164: (1, 1) then (1, 13)). Not a floaty text (ics ran it as ShowFloatyStatus until fase3-if). Wire message O (test-2026-10-28-1439-sweep.md S11).
+0x100000FB		0x48	0x99CFA0	0x15FD544	B r4 O O	15	10	data only	
+0x100000FC		0x2C	0x99D060	0x15FD5A4	B O O	4	4	data only	
+0x100000FD		0x28	0x9995A0			0	0	data only	
+0x100000FE	GetStackCount	0x40	0x99BA80	0x15FCC7C	B O O O	10	6	implemented	Sum of the running instances' stack counts (fase3-ht)
+0x10000100		0x2C	0x99ADB0	0x15FC6EC	B r4 r1 O O	0	0	data only	
+0x10000101		0x28	0x99ABA0			0	0	data only	
+0x10000102		0x40	0x999D80	0x15FC0BC	B r4 r4 r4 r1 r4 r4 r4 r4 O O O O	25	24	data only	
+0x10000103	StartScriptlet	0x70	0x9CAA40	0x15FE36C	B O {r4} r4 r4 r1 r1 O r1 r4	19	16	partial	run by the new server (ics/script_runtime.py)
+0x10000105		0x10	0x981F50			2	2	data only	
+0x10000108		0x40	0x9993C0	0x15FBB44	B O O	0	0	data only	
+0x10000109		0x78	0x9B70C0			0	0	data only	
+0x1000010A		0x48	0x99AA20	0x15FA458		1	1	data only	
+0x1000010B	RollCritical	0x54	0x999970	0x15FBDB4	B r4 O r4 O O O r1 r1	0	0	partial	run by the new server (ics/script_runtime.py)
+0x1000010C		0x40	0x99A400	0x15FC23C	O O	0	0	data only	
+0x1000010D		0x40	0x99D370	0x15FD758	B r4 r4 O O	0	0	data only	
+0x1000010E		0x24	0x99CB00			0	0	data only	
+0x10000111		0x30	0x999C70	0x15FC05C	B O r4 r1	0	0	data only	
+0x10000112		0x40	0x998C60	0x15FB9C4	O r4	0	0	data only	
+0x10000113		0x3C	0x998170	0x15FB454	B O O r4 O r4 r1 O r1 O O	0	0	data only	
+0x10000114		0xC	0x981E00			2	2	partial	run by the new server (ics/script_runtime.py)
+0x10000115		0x8	0x981070			0	0	data only	
+0x10000116		0x40	0x99D7A0	0x15FD90C	B O O O r4	0	0	data only	
+0x10000117		0x40	0x99A2F0	0x15FC1DC	B O O r1 r4	0	0	data only	
+0x10000118		0x34	0x99D000	0x15FD574	B r4 O O	0	0	data only	
+0x10000119		0x24	0x99AD00			2	1	data only	
+0x1000011A		0x84	0x9C4CB0	0x15FC38C	B {r4}	1	1	data only	ShowAnnouncement: the timeline descriptor (severity, strip icon, examination icon = a unit's billboard icon e.g. 0x130016CD, tint u8, audience 7) in GH cannon 0x340002CF (timeline-tooltip-camp-prespawn.md 1.1)
+0x1000011B		0xC	0x981880			0	0	data only	
+0x1000011E		0x44	0x99A460	0x15FA3F8	r4	0	0	data only	
+0x10000120		0x3C	0x9988C0	0x15FB7B4	B O O	0	0	data only	
+0x10000121		0x8C	0x99A220	0x15FC11C	B O O r4 r4 r4	0	0	data only	
+0x10000122		0x17C	0x9B7540	0x15FCE2C	B O O r4 O r4 O O r4 O O r4 r4 r4 O O O O O r1 r1 r1 r1 r1	5	5	partial	CreateAura, run by the new server (ics/script_nodes.py). A status' aura takes its applier's side (Sinestro's fear aura 0x3400048B fears the victim's allies, Arcane Harley's Delirium 0x34000781 buffs her) and never targets its own carrier (flag [0] 'include the owner' is 0 in all 52 hotspots / auras of the data; Solomon Grundy's plague 0x340006AB looped on its carrier otherwise) (meltdown-moving-target.md 10, fase3-if)
+0x10000133						6	3	not started	used by scripts, no registration found in the exe
+0x10000134		0x3C	0x99D670	0x15FD878	B O O O O r1 O r4 r4	15	11	partial	SetMissileVelocity, run by the new server (ics/script_nodes.py). A homing missile re-aimed by it in mid-flight flies on from where it is (Meltdown's orb 0x340002BE sets it every 0.3 s; from its launch point it landed 4.9 s late, never on a walking target) (meltdown-moving-target.md 6.1, fase3-if)
+0x10000135		0x24	0x99CBB0			3	3	data only	
+0x10000136		0x58	0x99CC60	0x15FD3C0	B O O r4	0	0	data only	
+0x10000137		0xB8	0x99D540	0x15FD788	B O r4 O O O O O O	0	0	data only	
+0x10000138		0x28	0x99D990			0	0	data only	
+0x10000139		0x40	0x9970B0	0x15FAD94	B O O r4	2	2	data only	
+0x1000013A		0x58	0x9CA9C0			4	4	data only	
+0x1000013B		0xC	0x981D10			69	56	data only	
+0x1000013C		0x20	0x997470			0	0	data only	
+0x1000013D		0x40	0x997930	0x15FB154	B O O O r1	0	0	data only	
+0x1000013E		0x90	0x99BEE0	0x15FCE2C	B O O r4 O r4 O O r4 O O r4 r4 r4 O O O O O r1 r1 r1 r1 r1	11	11	data only	
+0x1000013F		0x50	0x9CAB60	0x15FE1A8	{B O O r4 O r4 O O r4 O O r4 r4 r4 O O O O O r1 r1 r1 r1 r1} O r4 r1 O r1 r1 {r4}	0	0	data only	
+0x10000140		0x38	0x99DC70	0x15FDC6C	B O O	3	2	data only	
+0x10000141		0x28	0x998640			0	0	data only	
+0x10000143		0x20	0x99DD80			2	2	data only	
+0x10000144		0x24	0x99DCD0			2	2	data only	
+0x10000145		0xC	0x9809D0			0	0	data only	
+0x10000146		0x7C	0x9B7170	0x15FBAE4	B r4 O O	0	0	data only	
+0x10000147		0x3C	0x997350	0x15FAEE4	B r4 O O	0	0	data only	
+0x10000148		0x58	0x99BC00	0x15FCD3C	B O O r4 r1 r1 O	0	0	data only	
+0x10000149		0xA8	0x9B7710	0x15A8710	r4	2	2	data only	
+0x1000014A		0x3C	0x99C930			0	0	data only	
+0x1000014B		0x2C	0x997D30	0x15FB2D4	B r4 O r1 O r4	0	0	data only	
+0x1000014C		0x3C	0x99C7B0	0x15FD360	B r4 O O O	0	0	data only	
+0x1000014D		0x40	0x99B400	0x15FC8FC	B O O O r1 r1 r1 r1 r4 r4 O O O O O r1	0	0	data only	
+0x1000014E		0x90	0x99B280	0x15FC86C	B O O O	0	0	data only	
+0x10000150		0x40	0x99D0C0	0x15FD5A4	B O O	0	0	data only	
+0x10000151		0xC	0x981C20			1	1	data only	
+0x10000152		0x24	0x99A8C0			0	0	data only	
+0x10000153		0x2C	0x99CE90	0x15FD514	B O r4 r1 r1	5	5	data only	
+0x10000154		0xE8	0x99B8A0			5	5	data only	
+0x10000155		0x34	0x9CA7C0	0x15FE33C	B r1 r4 O r4 {r4}	8	8	data only	
+0x10000157		0x44	0x99AF30	0x15FC7DC	B r4 r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r4 O O O O O O r4 r1	0	0	data only	
+0x1000015C		0x3C	0x999480	0x15FBBA4	B O O r1 r1 r1 r1 O r4 r4	0	0	data only	
+0x1000015D		0x3C	0x9994E0	0x15FBBD0	B r4 O O O r4	0	0	data only	
+0x1000015E		0x8	0x981000			0	0	data only	
+0x10000160		0x24	0x99A350			0	0	data only	
+0x10000161		0x24	0x99B000			0	0	data only	
+0x10000162		0x44	0x99D5B0	0x15FD818	B O O	3	3	data only	
+0x10000163		0x38	0x99A570	0x15FC26C	B O O r4 r4	0	0	data only	
+0x10000164		0x20	0x99A4C0			0	0	data only	
+0x10000165		0x54	0x99BB40	0x15FCCDC	B O O r4 O	0	0	data only	
+0x10000166		0x40	0x99BC60	0x15FCDCC	r4 O O r1 r1 r4	0	0	data only	
+0x10000167		0x38	0x99D8D0	0x15FD9FC	B O O O	4	1	data only	
+0x10000168		0x40	0x9CA820	0x15FBC64	B O O {r4}	0	0	data only	
+0x10000169		0x28	0x997BC0			4	4	data only	
+0x1000016A		0x68	0x9C7B10			0	0	data only	
+0x1000016B		0x28	0x997B10			0	0	data only	
+0x1000016C		0x58	0x9B7780			0	0	data only	
+0x1000016D		0x3C	0x999420	0x15FBB74	B O O	0	0	data only	
+0x1000016E		0x24	0x99C530			0	0	data only	
+0x1000016F		0x50	0x99C170	0x15FCF78	O O r4 O r4	0	0	data only	
+0x10000171		0x24	0x9992B0	0x15FBB44	B O O	2	2	data only	
+0x10000172		0x3C	0x999AF0	0x15FBE78	B O O	0	0	data only	
+0x10000173		0x24	0x997C70			3	3	data only	
+0x10000174		0x4C	0x9B77F0	0x15FD158	B O O O O r1 r4 O O O	0	0	data only	
+0x10000175		0x1C	0x9B73A0			0	0	data only	
+0x10000177		0x54	0x9CAD10	0x15FE13C	B O {r4}	4	4	data only	
+0x10000178		0x1C	0x9B7300			0	0	data only	
+0x10000179		0xC	0x980B20			1	1	data only	
+0x1000017A		0x54	0x9977C0	0x15FB124	B O r4 r1 O	1	1	data only	
+0x1000017B		0x20	0x9B71D0			9	3	data only	
+0x1000017C		0x20	0x997580			0	0	data only	
+0x1000017D		0x10	0x980D70			2	1	data only	
+0x1000017E		0x34	0x9B7AB0	0x15FDC6C	B O O	0	0	data only	
+0x1000017F		0x40	0x99D120	0x15FD5D4	B r4 O O O O O O r1	56	8	data only	
+0x10000180		0x24	0x999860			0	0	data only	
+0x10000181		0x1C	0x9B7260			0	0	data only	
+0x10000182		0x10	0x981330			0	0	data only	
+0x10000183		0x20	0x9B7440			0	0	data only	
+0x10000184		0x24	0x99AB40	0x15FC62C	B O r4 r4	0	0	data only	
+0x10000185		0x58	0x9979F0	0x15FB1B4	B O O O O	0	0	data only	
+0x10000186		0xC	0x980A40			1	1	data only	
+0x10000187		0x24	0x998D20			2	2	data only	
+0x10000188		0x3C	0x998920	0x15FB7E4	B O O r1 r1	0	0	data only	
+0x10000189		0xC	0x982030			0	0	data only	
+0x1000018A		0xC	0x9812B0			0	0	data only	
+0x1000018C		0xC	0x981AC0			0	0	data only	
+0x1000018D		0x10	0x9816A0			0	0	data only	
+0x1000018E		0x44	0x997A50	0x15FB274	B O r1 r4	0	0	data only	
+0x1000018F		0xC	0x980C00			0	0	data only	
+0x10000190		0x54	0x998520	0x15FB5D4	B O O	0	0	data only	
+0x10000191		0x54	0x99B3A0	0x15FC8CC	B O O	0	0	data only	
+0x10000193		0x18	0x981610			0	0	data only	
+0x10000194		0x10	0x981970			0	0	data only	
+0x10000195		0x24	0x99CD80			17	14	partial	run by the new server (ics/script_runtime.py)
+0x10000197		0x28	0x997000			0	0	data only	
+0x10000198		0x40	0x999A90	0x15FBE48	B O O r4 r4 r1 r1 r1	0	0	data only	
+0x10000199		0x34	0x9CA620	0x15FE2DC	B O O O r1 r4 r4 r4 r4 r4 r4 r4 {r4} {r4} r1 r4 r1	0	0	data only	
+0x1000019B		0x28	0x99A690			0	0	data only	
+0x1000019C		0x3C	0x9972F0	0x15FAEB4	B O O r1	0	0	data only	
+0x1000019D		0x58	0x99D870	0x15FD96C	B O r4 r4 r4 {r1 r4 r4 {V V V V *loop} {r1}} r1	0	0	data only	
+0x1000019E		0x40	0x997170	0x15FADF4	B O O r4	0	0	data only	
+0x1000019F		0x40	0x9976F0	0x15FB034	B O O O O r1 O	0	0	data only	
+0x100001A0		0x54	0x99AF90	0x15FC7DC	B r4 r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r4 O O O O O O r4 r1	0	0	data only	
+0x100001A2		0xC	0x981510			0	0	data only	
+0x100001A3		0x58	0x99D930	0x15FD9FC	B O O O	2	1	data only	
+0x100001A4		0xC	0x981590			0	0	data only	
+0x100001A5		0x3C	0x998AE0	0x15FB814	B O r4 O	0	0	data only	
+0x100001A6		0x44	0x997990	0x15FB184	B O O r4 r4	0	0	data only	
+0x100001A7		0x10	0x981E70			0	0	data only	
+0x100001A9		0x28	0x99A170			0	0	data only	
+0x100001AA		0x9C	0x99AEC0	0x15FC71C	B O O O	0	0	data only	
+0x100001AB		0x3C	0x99C4D0	0x15FD0F8	B O r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r1 r4 r4 r4 r4 r4 r4 r4 r4	0	0	data only	
+0x100001AC		0x54	0x99DAA0	0x15FDA8C	B O O r4 r1	0	0	data only	
+0x100001AD		0x40	0x99CD20	0x15FD4B4	B r4 r4 O r1 O	1	1	data only	
+0x100001AF		0x40	0x99BF50	0x15FCF48	O O O	4	4	data only	
+0x100001B0		0x30	0x996FA0	0x15FAD94	B O O r4	0	0	data only	
+0x100001B1		0xC	0x980DF0			0	0	data only	
+0x100001B2		0x40	0x997230	0x15FAE54	B O O	0	0	data only	
+0x100001B3		0x44	0x997690	0x15FB034	B O O O O r1 O	0	0	data only	
+0x100001B4		0x6C	0x997AB0	0x15FB2A4	B O O	0	0	data only	
+0x100001B6		0x3C	0x997110	0x15FADC4	B O O r4 r4 r4 r1 r1 r4 O	0	0	data only	
+0x100001B7		0x8	0x9820A0			0	0	data only	
+0x100001B8		0x28	0x99A000			0	0	data only	
+0x100001B9		0x24	0x99D3D0			0	0	data only	
+0x100001C1						1	1	not started	used by scripts, no registration found in the exe
+0x100001C2						4	4	not started	used by scripts, no registration found in the exe
+0x10000211						1	1	not started	used by scripts, no registration found in the exe
+0x10000220						2	2	not started	used by scripts, no registration found in the exe
+0x10000223						8	8	not started	used by scripts, no registration found in the exe
+0x10000249						4	3	not started	used by scripts, no registration found in the exe
+0x1000024E						2	2	not started	used by scripts, no registration found in the exe
+0x1000029F						1	1	not started	used by scripts, no registration found in the exe
+0x100002F5						1	1	not started	used by scripts, no registration found in the exe
+0x10000319						23	7	not started	used by scripts, no registration found in the exe
+0x10000353						222	21	not started	used by scripts, no registration found in the exe
+0x100003A3						1	1	not started	used by scripts, no registration found in the exe
+0x100003B6						9	3	not started	used by scripts, no registration found in the exe
+0x100003B9						9	3	not started	used by scripts, no registration found in the exe
+0x1000040D						1	1	not started	used by scripts, no registration found in the exe
+0x1000041B						8	7	not started	used by scripts, no registration found in the exe
+0x10000426						2	1	not started	used by scripts, no registration found in the exe
+0x1000043D						12	3	not started	used by scripts, no registration found in the exe
+0x10000452						1	1	not started	used by scripts, no registration found in the exe
+0x10000459						13	12	not started	used by scripts, no registration found in the exe
+0x1000046E						8	6	not started	used by scripts, no registration found in the exe
+0x10000475						1975	21	not started	used by scripts, no registration found in the exe
+0x10000477						87	21	not started	used by scripts, no registration found in the exe
+0x100004AF						10	10	not started	used by scripts, no registration found in the exe
+0x100004B3						7	7	not started	used by scripts, no registration found in the exe
+0x100004B4						2	1	not started	used by scripts, no registration found in the exe
+0x100004B6						13	6	not started	used by scripts, no registration found in the exe
+0x100004B7						39	14	not started	used by scripts, no registration found in the exe
+0x100004D3						250	21	not started	used by scripts, no registration found in the exe
+0x100004DF						11	4	not started	used by scripts, no registration found in the exe
+0x100004EE						1	1	not started	used by scripts, no registration found in the exe
+0x100004F3						1	1	not started	used by scripts, no registration found in the exe
+0x10000541						1	1	not started	used by scripts, no registration found in the exe
+0x100005E4						7	5	not started	used by scripts, no registration found in the exe
+0x10000620						2	1	not started	used by scripts, no registration found in the exe
+0x10000642						6	3	not started	used by scripts, no registration found in the exe
+0x10000643						1	1	not started	used by scripts, no registration found in the exe
+0x10000646						2	2	not started	used by scripts, no registration found in the exe
+0x1000064F						57	21	not started	used by scripts, no registration found in the exe
+0x100006CB						2	2	not started	used by scripts, no registration found in the exe
+0x100006EF						49	18	not started	used by scripts, no registration found in the exe
+0x100006F3						8	4	not started	used by scripts, no registration found in the exe
+0x100006FA						1	1	not started	used by scripts, no registration found in the exe
+0x100006FE						14	9	not started	used by scripts, no registration found in the exe
+0x10000721						3	3	not started	used by scripts, no registration found in the exe
+0x1000072D						3	3	not started	used by scripts, no registration found in the exe
+0x10000766						3	3	not started	used by scripts, no registration found in the exe
+0x1000079B						3	3	not started	used by scripts, no registration found in the exe
+0x1000079C						6	3	not started	used by scripts, no registration found in the exe
+0x1000079E						18	3	not started	used by scripts, no registration found in the exe
+0x100007AD						3	3	not started	used by scripts, no registration found in the exe
+0x100007B0						126	3	not started	used by scripts, no registration found in the exe
+0x100007BF						2	1	not started	used by scripts, no registration found in the exe
+0x100007CA						1	1	not started	used by scripts, no registration found in the exe
+0x100007DF						1	1	not started	used by scripts, no registration found in the exe
+0x100007EC						2	2	not started	used by scripts, no registration found in the exe
+0x10000804						3	3	not started	used by scripts, no registration found in the exe
+0x10000822						1	1	not started	used by scripts, no registration found in the exe
+0x10000854						1	1	not started	used by scripts, no registration found in the exe
+0x100008D5						1	1	not started	used by scripts, no registration found in the exe
+0x100008DF						7	5	not started	used by scripts, no registration found in the exe
+0x10000922						4	3	not started	used by scripts, no registration found in the exe
+0x100009A3						2	1	not started	used by scripts, no registration found in the exe
+0x10000A6B						1	1	not started	used by scripts, no registration found in the exe
+0x10000A8F						4	1	not started	used by scripts, no registration found in the exe
+0x10000AB1						4	1	not started	used by scripts, no registration found in the exe
+0x10000AF1						2	1	not started	used by scripts, no registration found in the exe
+0x10000AFA						1	1	not started	used by scripts, no registration found in the exe
+0x10000B00						6	3	not started	used by scripts, no registration found in the exe
+0x10000B4A						4	2	not started	used by scripts, no registration found in the exe
+0x10000B5F						3	3	not started	used by scripts, no registration found in the exe
+0x10000B75						15	9	not started	used by scripts, no registration found in the exe
+0x10000B76						20	11	not started	used by scripts, no registration found in the exe
+0x10000B7A						6	3	not started	used by scripts, no registration found in the exe
+0x10000B84						7	4	not started	used by scripts, no registration found in the exe
+0x10000B86						2	1	not started	used by scripts, no registration found in the exe
+0x10000BE1						1	1	not started	used by scripts, no registration found in the exe
+0x10000BE5						2	1	not started	used by scripts, no registration found in the exe
+0x10000BFC						7	1	not started	used by scripts, no registration found in the exe
+0x10000C7B						4	1	not started	used by scripts, no registration found in the exe
+0x10000CEB						51	11	not started	used by scripts, no registration found in the exe
+0x10000D45						1	1	not started	used by scripts, no registration found in the exe
