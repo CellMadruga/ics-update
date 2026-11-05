@@ -232,7 +232,8 @@ DEFAULTS = {
         "heading_from_vector": True,
         # 2026-11-03 (tester report 14:40: Superman's E punch never shows): a state that raises its own animation and
         # waits for OnCastSignal 2 waits for that animation's end (the graph's code 2), not for its chain's end (also 2).
-        # false = the chain's end fires it, as before
+        # false = the chain's end fires it, as before. 2026-11-05 (PR #4 review, finding 6): leaving the state ends only
+        # that cast; a newer cast on the same instance keeps running
         "graph_done_waits": True,
         # 2026-11-03 (tester report 14:43: Blue Beetle's E shots never fly, each destroyed 77 ms after its creation): a
         # script-spawned entity's 0x10000049 comes after the spawning chain, and LaunchMissile of an entity gives its

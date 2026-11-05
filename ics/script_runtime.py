@@ -1271,15 +1271,23 @@ class Region:
         """Run the current state's exit chain (and its sub-graph's, innermost first)."""
         if self.state is None or self.state >= len(self.graph.states):
             return
-        if self.__dict__.get("_own_anim_cast") == self.state:
+        own = self.__dict__.get("_own_anim_cast")
+        if own and own[0] == self.state:
             # 2026-11-03 (tester report 2026-11-03 16:09: after Superman's E punch he cannot move for about 2 s; headless:
             # the punch state's cast kept casting = 1 for good after the timed fallback, cast_holds_movement held him):
-            # the cast graph_done_waits started for this state ends with it (later timers of it are void)
+            # the cast graph_done_waits started for this state ends with it (later timers of it are void).
+            # 2026-11-05 (PR #4 review, finding 6): only that cast. Only the newest cast of an instance is live (each
+            # start_cast voids the older ones' timers); if a newer one started since, it keeps its id and its count
             self._own_anim_cast = None
             inst = self.inst
-            inst.cast_id = getattr(inst, "cast_id", 0) + 1
-            inst.casting = 0
-            inst.graph_casting = 0
+            ids = {own[1], (getattr(inst, "cast_fallback", None) or {}).get(own[1])}
+            if getattr(inst, "cast_id", 0) in ids:
+                inst.cast_id = getattr(inst, "cast_id", 0) + 1
+                inst.casting = 0
+                inst.graph_casting = 0
+            else:
+                inst.casting = min(getattr(inst, "casting", 0), 1)
+                inst.graph_casting = min(getattr(inst, "graph_casting", 0), inst.casting)
         st = self.graph.states[self.state]
         if (EXIT_UPDATE and st.slots[1] is not None and self.__dict__.get("_event_leave")
                 and self.__dict__.get("_updated_at", 1e18) < self.inst.world.time - 1e-9 and not self.inst.removed):
@@ -1330,7 +1338,7 @@ class Region:
                 # chain's own result (RESULT_DONE is 2 too) fired it before the animation. A state that raises its own
                 # animation and waits for 2 waits for that animation's end, as a cast does ([ics] graph_done_waits)
                 start_cast(self.inst)
-                self._own_anim_cast = index      # ended when the state is left (Region.leave)
+                self._own_anim_cast = (index, self.inst.cast_id)    # ended when the state is left (Region.leave)
             else:
                 self.check(code=code)        # no cast running: the chain's own result (passives, delays)
 
@@ -2259,6 +2267,7 @@ def _runtime_cast(inst, g):
         inst.graph_casting -= 1
         inst.casting = max(0, inst.casting - 1)
         _timed_cast(inst)
+        inst.__dict__.setdefault("cast_fallback", {})[cast_id] = inst.cast_id   # the same cast, timed (Region.leave)
     if GRAPH_MISSILE_RELEASE > 0:
         state = {"gone": None}
 

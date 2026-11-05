@@ -569,6 +569,34 @@ def cooldown_restore_only_from_slots(cfg, data):
     check("Green Arrow's Q leaves a longer W cooldown alone", left > 5.0, f"{left:.1f} s")
 
 
+def leave_ends_only_its_own_cast(cfg, data):
+    """PR #4 review, finding 6: a state's graph_done_waits cast ends with the state, and a newer cast on the same
+    instance keeps running."""
+    import types
+    st = types.SimpleNamespace(slots=[None, None, None], is_graph=False, states=[], transitions=[], locals={})
+    graph = types.SimpleNamespace(states=[st], transitions=[])
+
+    def region(cast_id, casting, graph_casting, own_id, fallback=None):
+        world = types.SimpleNamespace(time=0.0, log=lambda *_a: None)
+        inst = types.SimpleNamespace(world=world, removed=False, cast_id=cast_id, casting=casting,
+                                     graph_casting=graph_casting)
+        if fallback:
+            inst.cast_fallback = fallback
+        r = R.Region(inst, graph)
+        r.state = 0
+        r._own_anim_cast = (0, own_id)
+        r.leave()
+        return inst
+    a = region(5, 1, 1, 5)
+    check("the state's own cast ends with the state", a.casting == 0 and a.cast_id == 6, f"{a.casting} / {a.cast_id}")
+    b = region(6, 2, 1, 5)
+    check("a newer cast on the instance keeps running", b.casting == 1 and b.cast_id == 6,
+          f"casting {b.casting}, cast id {b.cast_id}")
+    c = region(6, 1, 0, 5, fallback={5: 6})
+    check("the own cast after its timed fallback still ends with the state", c.casting == 0 and c.cast_id == 7,
+          f"{c.casting} / {c.cast_id}")
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -588,7 +616,7 @@ def main():
                    stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders, scarab_skill_used,
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
-                   frost_breath_root):
+                   frost_breath_root, leave_ends_only_its_own_cast):
             fn(cfg, data)
     finally:
         time.time = TM._real_time
