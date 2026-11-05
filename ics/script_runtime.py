@@ -28,6 +28,7 @@ import random
 import struct
 
 from . import script_model as V
+from . import cooldown_flow as _cooldown_flow
 from .combat import Combat, Handle
 
 # result codes reported by a finished chain (trigger 0x10000019 with enum 0x1000000F)
@@ -968,12 +969,14 @@ class Instance:
             block = getattr(self.owner, "_owner_block", None)
             if block and op.value in block:
                 return block[op.value]
-        if (op.source == 2 and SLOT_COOLDOWN_VARS and isinstance(op.slot, int) and 0x20 <= op.slot < 0x20 + 8 * 16
-                and op.slot % 8 == 0 and hasattr(self.world, "cooldown_end")):
+        if (op.source == 2 and SLOT_COOLDOWN_VARS and _cooldown_flow.is_cooldown_slot(op)
+                and hasattr(self.world, "cooldown_end")):
             # 2026-11-03 (tester report 2026-11-03 00:34: Blue Beetle's ranged and melee Q / W / E share their cooldowns):
             # the owner block's f64 at 0x20 + 8 x slot is that slot's cooldown end (game time), written by the engine
             # (no script writes 0x28 / 0x30 / 0x38; Blue Beetle's 0x34000451 / 454 / 455 read them as "end - now" to keep
-            # each form's cooldown in 0xD0 / 0xD8 / 0xE0 across a swap) ([ics] slot_cooldown_vars)
+            # each form's cooldown in 0xD0 / 0xD8 / 0xE0 across a swap) ([ics] slot_cooldown_vars). 2026-11-05 (PR #4
+            # review, finding 5): slots 0-5 only; six scripts read them: those three and Green Arrow's Q / W / E
+            # 0x3400040E / 40D / 410 ("end - now < SharedCooldown" before the shared cooldown)
             return self.world.cooldown_end(self.owner, (op.slot - 0x20) // 8)
         if op.source == 1 and op.slot == 0 and op.value not in self.script.names:
             return op.value                 # literal held in a "value | 1 | 0" operand
@@ -2420,9 +2423,12 @@ def _cooldown(inst, n, ops, chain):              # 0x10000007: StartCooldown(dur
     explicit = slot not in (0xFFFFFFFF, -1)
     slot = inst.slot if not explicit else slot
     seconds = inst.number(ops[0]) if ops else 0.0
-    if explicit and SLOT_COOLDOWN_VARS and hasattr(inst.world, "restore_cooldown"):
+    if (explicit and SLOT_COOLDOWN_VARS and hasattr(inst.world, "restore_cooldown")
+            and _cooldown_flow.is_restore(inst.script, ops[0] if ops else None)):
         # 2026-11-03 (Blue Beetle's form swap, 0x34000451 / 454 / 455 graph S2): StartCooldown(TimeRemaining)[slot] puts
-        # back the other form's saved cooldown, 0 = ready; it is a remaining time already reduced when it started
+        # back the other form's saved cooldown, 0 = ready; it is a remaining time already reduced when it started.
+        # 2026-11-05 (PR #4 review, finding 1): only when the script reads the duration from a cooldown slot
+        # (ics/cooldown_flow.py); the other explicit-slot StartCooldowns are ordinary (reduction, 0 = nothing)
         inst.world.restore_cooldown(inst.source(), seconds, slot)
         _subs(inst, n, chain)
         return False

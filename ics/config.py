@@ -217,7 +217,9 @@ DEFAULTS = {
         # 2026-11-03 (tester report 2026-11-03 00:34: Blue Beetle's ranged and melee Q / W / E share cooldowns; they must
         # be independent): the owner block's 0x20 + 8 x slot reads that slot's cooldown end (the engine's; no script
         # writes it) and StartCooldown with an explicit slot sets that slot to the given remaining time, 0 = ready (the
-        # form swap puts back the other form's). false = as before
+        # form swap puts back the other form's). false = as before. 2026-11-05 (PR #4 review, findings 1 and 5): the
+        # restore only when the script reads that time from a cooldown slot (ics/cooldown_flow.py: Blue Beetle's six
+        # swap nodes); every other explicit-slot StartCooldown keeps the reduction and 0 = nothing; slots 0-5 only
         "slot_cooldown_vars": True,
         # 2026-11-03 (tester: Blue Beetle's melee basic attack has the ranged reach): the basic attack's reach takes the
         # slot-0 stat 18 override its script sets (SetSkillStatOverride 0x10000153). false = the record's stat 18

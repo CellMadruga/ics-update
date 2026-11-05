@@ -27,6 +27,7 @@ import test_meltdown as TM                               # noqa: E402
 
 ENCOUNTER = 0x40000C82                                   # Crime Alley
 ATOMIC_JOKER, BLUE_BEETLE, AWW = 0x40000962, 0x400007FA, 0x400003EC
+GREEN_ARROW = 0x400006F9
 STEP = 0.05
 CHECKS = []
 
@@ -501,6 +502,53 @@ def runtime_flags_follow_config(cfg):
     check("champion_check applies the runtime switches", "runtime_flags.apply(cfg)" in src)
 
 
+def cooldown_restore_only_from_slots(cfg, data):
+    """PR #4 review, finding 1: only a StartCooldown whose duration the script reads from a cooldown slot restores it
+    (Blue Beetle's six form-swap nodes); the other explicit-slot ones keep cooldown reduction and the longer cooldown."""
+    import os as _os
+    from ics import cooldown_flow as CF
+    from ics import script_model as V
+    restores, plain = set(), 0
+    for f in sorted(_os.listdir(V.TREES)):
+        try:
+            sc = V.load(int(f[:-5], 16))
+        except Exception:
+            continue
+
+        def walk(n):
+            yield n
+            for c in n.children:
+                yield from walk(c)
+        for n in walk(V.Node(sc.raw)):
+            if n.type_id == 0x10000007 and n.values and n.values[0] not in (0xFFFFFFFF, -1):
+                if CF.is_restore(sc, n.operands[0] if n.operands else None):
+                    restores.add(sc.did)
+                else:
+                    plain += 1
+    check("only Blue Beetle's form swaps restore a saved cooldown", restores == {0x34000451, 0x34000454, 0x34000455},
+          f"{sorted(hex(d) for d in restores)}")
+    check("the other explicit-slot StartCooldowns stay ordinary (26)", plain == 26, f"{plain}")
+
+    def shared_left(cdr):
+        w, s, ch, bot, tick, logs = world_with(cfg, data, GREEN_ARROW)
+        w.nav = None
+        if cdr:
+            w.combat.add_modifier(ch, 0x10000B7B, 9, cdr)
+        w.cast(ch, 1, None, tuple(bot.pos))
+        tick(0.2)
+        return ch.ready_at.get(2, 0.0) - s.clock
+    plain_left, cdr_left = shared_left(0.0), shared_left(0.2)
+    check("Green Arrow's shared cooldown takes cooldown reduction", 0 < cdr_left < plain_left - 0.05,
+          f"{cdr_left:.2f} s with 20 %, {plain_left:.2f} s without")
+    w, s, ch, bot, tick, logs = world_with(cfg, data, GREEN_ARROW)
+    w.nav = None
+    w.combat.set_cooldown(ch, 2, s.clock + 6.0)
+    w.cast(ch, 1, None, tuple(bot.pos))
+    tick(0.2)
+    left = ch.ready_at.get(2, 0.0) - s.clock
+    check("Green Arrow's Q leaves a longer W cooldown alone", left > 5.0, f"{left:.1f} s")
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -517,7 +565,7 @@ def main():
     try:
         for fn in (jack_in_the_box, punch_line, stick_and_move, infiltrator_mode, construct_teleport,
                    heat_vision_knockback, heat_vision_punch, heat_vision_punch_through, heat_vision_diagonal,
-                   stick_and_move_hits, blue_beetle_forms, blue_beetle_passive_orders, scarab_skill_used,
+                   stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders, scarab_skill_used,
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
                    frost_breath_root):
