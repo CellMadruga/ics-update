@@ -253,6 +253,11 @@ DEFAULTS = {
         # 0x10000195, called by 221 skill scripts after their cast point, raises "skill used" 0x10000196 {Slot} (P); the
         # activation's broadcast stays for the scripts without it. false = the activation's broadcast only, as before
         "skill_echo_node": True,
+        # 2026-11-05 (PR #4 review: Shazam's Q / W statuses changed; headless: his chain lightning 0x340006FF, started in
+        # the Q's world with its slot, raised one "skill used" per hop and his passive counted 4 uses per Q): only the
+        # slot's own skill script raises it (P: from the data, the original's rule is not known). false = every script
+        # with the slot
+        "skill_echo_own_slot": True,
         # 2026-11-03 (tester report 23:24: in the original the ranged W starts Blue Beetle's passive when launched or
         # detonated; the detonation is a second press with no SkillEcho): every taken use raises "skill used" 0x10000196
         # at its activation again; SkillEcho raises it only when the use's activation did not (false = anim-22)

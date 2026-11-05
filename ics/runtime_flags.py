@@ -18,6 +18,7 @@ FLAGS = {
     "LAUNCH_SETS_TARGET": "spawn_event_after_chain",
     "HANDLE_RUNS": "scriptlet_handle_runs",
     "SKILL_ECHO_NODE": "skill_echo_node",
+    "SKILL_ECHO_OWN_SLOT": "skill_echo_own_slot",
     "SKILL_USED_EVERY_USE": "skill_used_every_use",
 }
 

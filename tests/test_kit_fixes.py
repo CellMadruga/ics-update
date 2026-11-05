@@ -628,6 +628,27 @@ def held_runs_let_go(cfg, data):
     check("a script that ends lets its held runs go", 0x77 not in (orders.held.get(ch.eid) or {}))
 
 
+def skill_used_once_per_use(cfg, data):
+    """PR #4 review (R13): Shazam's chain lightning 0x340006FF runs with the Q's slot and calls SkillEcho on every hop;
+    only the Q's own script raises "skill used" 0x10000196 ([ics] skill_echo_own_slot)."""
+    w, s, ch, bot, tick, logs = world_with(cfg, data, 0x40000358, bot_dx=3.0)
+    w.nav = None
+    used = []
+    real = R.raise_event
+
+    def spy(world, ent, event, params=None, *a, **k):
+        if event == 0x10000196 and ent is ch:
+            used.append(params)
+        return real(world, ent, event, params, *a, **k)
+    R.raise_event = spy
+    try:
+        w.cast(ch, 1, None, (bot.pos[0], bot.pos[1], bot.pos[2]))
+        tick(2.0)
+    finally:
+        R.raise_event = real
+    check("Shazam's Q (and its chain) raises 'skill used' once", len(used) == 1, f"{len(used)}: {used}")
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -647,7 +668,8 @@ def main():
                    stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders, scarab_skill_used,
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
-                   frost_breath_root, leave_ends_only_its_own_cast, held_runs_let_go):
+                   frost_breath_root, leave_ends_only_its_own_cast, held_runs_let_go,
+                   skill_used_once_per_use):
             fn(cfg, data)
     finally:
         time.time = TM._real_time

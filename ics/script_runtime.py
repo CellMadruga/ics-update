@@ -68,6 +68,7 @@ GRAPH_DONE_WAITS = True              # [ics] graph_done_waits (Superman's E punc
 LAUNCH_SETS_TARGET = True            # [ics] spawn_event_after_chain (Blue Beetle's E shots, 2026-11-03)
 HANDLE_RUNS = True                   # [ics] scriptlet_handle_runs (a StopScriptlet stops its own run, 2026-11-03)
 SKILL_ECHO_NODE = True               # [ics] skill_echo_node (Blue Beetle's passive, 2026-11-03)
+SKILL_ECHO_OWN_SLOT = True           # [ics] skill_echo_own_slot (Shazam's chain, PR #4 review, 2026-11-05)
 SKILL_USED_EVERY_USE = True          # [ics] skill_used_every_use (Blue Beetle's W detonation, 2026-11-03 23:24)
 STATUS_TIMER_FIRST_WAIT = {0x340002BF}  # [ics] status_timer_first_wait: status script DIDs (agl-qer-lift.md 3)
 # [ics] missile_destroy_delay_scripts: missile scripts whose own DestroyEntity(SELF, delay) decides when a homing missile
@@ -3240,6 +3241,12 @@ def _skill_echo(inst, n, ops, chain):            # 0x10000195 SkillEcho(entity)
     event at the activation, only when the script took the use; a script with this node raises it here
     ([ics] skill_echo_node)."""
     if SKILL_ECHO_NODE and isinstance(inst.slot, int) and 1 <= inst.slot <= 4 and getattr(inst, "status", None) is None:
+        insts = getattr(inst.owner, "skill_insts", None)
+        if SKILL_ECHO_OWN_SLOT and isinstance(insts, dict) and insts.get(inst.slot) is not inst:
+            # 2026-11-05 (PR #4 review, R13: Shazam's Q statuses moved): a script started inside a skill's world takes
+            # its slot (Shazam's chain lightning 0x340006FF, one SkillEcho per hop), but only the slot's own skill
+            # script counts as a use; the passive 0x340001FD counted 4 uses per Q (P, [ics] skill_echo_own_slot)
+            return False
         if SKILL_USED_EVERY_USE and getattr(inst, "use_echoed", False):
             inst.use_echoed = False          # this use's activation already raised it
             return False
