@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(ROOT, "tests"))
 
 from ics import config                                   # noqa: E402
 from ics import script_runtime as R                       # noqa: E402
+from ics import runtime_flags as RF                       # noqa: E402
 from ics.gamedata import Data                            # noqa: E402
 import test_match as T                                   # noqa: E402
 import test_meltdown as TM                               # noqa: E402
@@ -488,6 +489,18 @@ def frost_breath_root(cfg, data):
     check("the root ends with its status", not w.combat.flag(bot, 0x100007FE))
 
 
+def runtime_flags_follow_config(cfg):
+    """PR #4 review: the server and champion_check apply the same switches from [ics]."""
+    off = {"ics": dict(cfg["ics"], local_frames=False)}
+    RF.apply(off)
+    check("local_frames = false turns R.LOCAL_FRAMES off", R.LOCAL_FRAMES is False)
+    RF.apply({"ics": {}})
+    check("a missing key leaves every switch on", all(getattr(R, a) is True for a in RF.FLAGS))
+    with open(os.path.join(ROOT, "tools", "champion_check.py"), encoding="utf-8") as f:
+        src = f.read()
+    check("champion_check applies the runtime switches", "runtime_flags.apply(cfg)" in src)
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -498,7 +511,8 @@ def main():
     cfg["ics"]["base_aura_invulnerable"] = False          # the scenes stand at the team's start
     data = Data(cfg.game_dir)
     TM.setup(cfg, data)
-    R.STOP_LEFT_SUBGRAPHS = bool(cfg["ics"].get("stop_left_subgraphs", True))
+    runtime_flags_follow_config(cfg)
+    RF.apply(cfg)                                          # the server's switches, as ics/server.py sets them
     time.time = TM._virtual_time
     try:
         for fn in (jack_in_the_box, punch_line, stick_and_move, infiltrator_mode, construct_teleport,

@@ -758,6 +758,8 @@ def main(argv=None):
     # the server's status resolvers (ics/server.py; skill-mechanics-recipes.md 0: without them every status was max 1)
     R.STATUS_RESOLVER, R.STACKS_RESOLVER = data.status_script, data.status_max_stacks
     R.STATUS_STACK_MODEL = bool(cfg["ics"].get("status_stack_model", True))
+    from ics import runtime_flags
+    runtime_flags.apply(cfg)                               # the server's switches (ics/server.py)
     R.POLL_ONCE_PER_TICK = bool(cfg["ics"].get("script_poll_once_per_tick", True))
     R.LOCAL_Y_FORWARD = bool(cfg["ics"].get("local_y_forward", True))
     R.RESET_LOCALS = bool(cfg["ics"].get("reset_state_locals", True))
