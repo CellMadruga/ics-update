@@ -263,6 +263,8 @@ DEFAULTS = {
         # object and moment, StartScriptlet runs ride along in the object's later orders until stopped (P), and stops
         # go as event 0x11F (the client's own stop, mode 1). ics/scriptlet_orders.py. false = one order per scriptlet
         # and 0x8D signal stops, as before
+        # 2026-11-05 (PR #4 review, finding 2): a held run is let go when its object dies or respawns and when the
+        # script that started it ends without a StopScriptlet (then the next order ends it, as before)
         "scriptlet_orders": True,
         "scriptlet_orders_skip_encounters": ["0x40000991"],   # Tutorial 1 keeps its own orders
         # 2026-11-04 (tester report 01:59: Superman's beam middle missing sometimes; vitals / modifier / status icon

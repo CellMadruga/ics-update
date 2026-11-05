@@ -25,8 +25,10 @@ tester remembers the passive's particles for its whole buff):
   they ride along, with their own run number and variables, in every later 0x8D order to that object until they are
   stopped. The client restarts them there (stop-all, then a new run): a short blink, as anim-09's effect set (the
   tester accepted it, 2026-10-27 17:57). The client's additive path 0x2073 (0xA22DA0: no stop-all, live runs
-  skipped) would avoid the blink, but it applies directly only when the object's +0x110 is the "none" DID
-  (0xA883F0); to confirm with diag before using it.
+  skipped) was tried for the scripts' own runs on 2026-11-04 and reverted the same day (effects that never ended:
+  [ics] scriptlet_orders_event in config.py); 0x8D is the default.
+- A held run is let go when its object dies or respawns and when the script that started it ends (EndThisScript,
+  status removed): from then on it no longer rides along, so the next order ends it, as before this module (P).
 - A script's StopScriptlet is event 0x11F (key, run, mode 1) instead of the 0x8D signal (the server's own stops,
   stealth shimmer, camps, keep their 0x8D signal).
 
@@ -78,17 +80,36 @@ class Orders:
         self.w, self.raw_send = world, send
         self.pending = {}          # dest -> [label, flags, [(run or None, entry count, entry bytes)]]
         self.held = {}             # dest -> {run: (key, entry bytes or None)}
+        self.owners = {}           # (dest, run) -> the guid of the script instance whose StartScriptlet holds it
         self.flush_due = False
 
     # the script side ------------------------------------------------------------------------------------------
-    def hold(self, ent, key, run):
+    def hold(self, ent, key, run, owner=None):
         """A StartScriptlet run (a script handle keeps it on): it rides along in the object's later orders."""
         if run is None or not hasattr(ent, "eid"):
             return
+        if owner is not None:
+            self.owners[(ent.eid, run)] = getattr(owner, "guid", owner)
         held = self.held.setdefault(ent.eid, {})
         if held.get(run, (0, None))[1] is None:
             sent = next((u[2] for u in (self.pending.get(ent.eid) or [None, None, ()])[2] if u[0] == run), None)
             held[run] = (key, sent)
+
+    def release(self, ent):
+        """2026-11-05 (PR #4 review, finding 2): the object died or respawned: none of its held runs rides along any
+        more (the death fall's 0x8D does the client's stop-all; no extra 0x11F)."""
+        eid = getattr(ent, "eid", ent)
+        self.held.pop(eid, None)
+        for k in [k for k in self.owners if k[0] == eid]:
+            self.owners.pop(k, None)
+
+    def release_owner(self, inst):
+        """2026-11-05 (PR #4 review, finding 2): the script ended (EndThisScript, status removed) without stopping its
+        runs: they no longer ride along."""
+        guid = getattr(inst, "guid", None)
+        for (eid, run) in [k for k, g in self.owners.items() if g == guid]:
+            self.owners.pop((eid, run), None)
+            (self.held.get(eid) or {}).pop(run, None)
 
     def stop(self, ent, key, run):
         """Stop one run (run None = every run of the key) with 0x11F, mode 1 as the client's own StopScriptlet."""
@@ -188,9 +209,8 @@ class Orders:
         self.raw_send(label, M.build_message(dest, event, body, flags))
 
     def event(self):
-        """[ics] scriptlet_orders_event: 0x2073 (default since 2026-11-04: the client's additive start 0xA22DA0, no
-        stop-all, live run numbers skipped; diag --orders showed the champion's +0x110 = the "none" DID, the direct
-        path) for the scripts' own runs, or 0x8D for every order (anim-23)."""
+        """[ics] scriptlet_orders_event: 0x8D for every order (the default, anim-23), or 0x2073 for the scripts' own runs
+        (the client's additive start 0xA22DA0, no stop-all; tried on 2026-11-04 and reverted: see config.py)."""
         ev = self.w.ic.get("scriptlet_orders_event", EVT_SCRIPTLETS)
         ev = int(str(ev), 0) if isinstance(ev, str) else int(ev or EVT_SCRIPTLETS)
         return ev if ev in (EVT_SCRIPTLETS, EVT_ADD) else EVT_SCRIPTLETS
@@ -207,10 +227,17 @@ def install(world):
     orders = Orders(world, world.send)
     world.send = orders.send
     world.scriptlet_orders = orders
+    # 2026-11-05 (PR #4 review, finding 2): a death or a respawn lets the object's held runs go
+    emit, respawn_event = world.emit, world.respawn_event
+
+    def emitted(event, **details):
+        if event == "killed":
+            orders.release(details.get("ent"))
+        return emit(event, **details)
+    world.emit = emitted
+
+    def respawned(ent):
+        orders.release(ent)
+        return respawn_event(ent)
+    world.respawn_event = respawned
     return orders
-
-
-def of(world):
-    """The world's Orders, or None (off, skipped encounter, a test world)."""
-    w = getattr(world, "w", world)
-    return getattr(w, "__dict__", {}).get("scriptlet_orders")

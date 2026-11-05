@@ -933,6 +933,9 @@ class Instance:
                     except RecursionError:
                         pass
         self.removed = True
+        orders = getattr(getattr(self.world, "w", None), "__dict__", {}).get("scriptlet_orders")
+        if orders is not None:
+            orders.release_owner(self)         # its StartScriptlet runs no longer ride along (PR #4 review, finding 2)
         try:
             scripts_on(self.world, self.owner).remove(self)
         except ValueError:
@@ -2669,7 +2672,7 @@ def _start_scriptlet(inst, n, ops, chain):       # 0x10000103: StartScriptlet(en
         if orders is not None and hasattr(ent, "eid"):
             # 2026-11-03 (tester report 2026-11-03 22:16: Blue Beetle's passive particles gone; every 0x8D order ends
             # the runs earlier orders started, C 0x627E4D): the run rides along until its stop (ics/scriptlet_orders.py)
-            orders.hold(ent, key, getattr(w, "live_scriptlets", {}).get((ent.eid, key)))
+            orders.hold(ent, key, getattr(w, "live_scriptlets", {}).get((ent.eid, key)), owner=inst)
         inst.set(ops[-1], ("scriptlet", key, ent, run) if run is not None else ("scriptlet", key, ent))
     return False
 

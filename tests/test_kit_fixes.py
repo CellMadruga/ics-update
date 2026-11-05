@@ -597,6 +597,37 @@ def leave_ends_only_its_own_cast(cfg, data):
           f"{c.casting} / {c.cast_id}")
 
 
+def held_runs_let_go(cfg, data):
+    """PR #4 review, finding 2: a held run no longer rides along after its object's death, after the respawn, or after
+    the script that started it ended without a StopScriptlet."""
+    w, s, ch, bot, tick, logs = world_with(cfg, data, BLUE_BEETLE, bot_dx=3.0)
+    w.nav = None
+    loop = bytes([0x10, 0x8B, 0xC3])                       # 0x10000BC3 (the passive's loop) as an entry key
+    orders = w.scriptlet_orders
+    w.cast(ch, 1, None, (bot.pos[0], bot.pos[1], bot.pos[2]))           # ranged Q: the passive's buff (6 s)
+    tick(0.5)
+    held = bool((orders.held.get(ch.eid) or {}))
+    dead = len(s.sent)
+    w.damage(bot, ch, ch.health + 10_000.0)
+    tick(0.5)
+    death = [o for o in _orders(s, ch.eid, dead) if o[2] == 0x8D]
+    check("the passive's loop is held during the buff", held)
+    check("the death's orders carry no held run", bool(death) and not any(loop in o[3] for o in death),
+          f"{len(death)} orders, loop in {[loop in o[3] for o in death]}")
+    w.respawn()
+    tick(0.5)
+    back = len(s.sent)
+    w.cast(ch, 3, None, (bot.pos[0] + 2.0, bot.pos[1], bot.pos[2]))
+    tick(1.0)
+    check("after the respawn no old run rides along",
+          not any(loop in o[3] for o in _orders(s, ch.eid, back) if o[2] == 0x8D) and not orders.held.get(ch.eid))
+    orders.held[ch.eid] = {0x77: (0x10000BC3, loop + bytes(1))}
+    inst = ch.skill_insts.get(3)                           # a real script of his that ends (EndThisScript)
+    orders.owners[(ch.eid, 0x77)] = inst.guid
+    inst.stop()
+    check("a script that ends lets its held runs go", 0x77 not in (orders.held.get(ch.eid) or {}))
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -616,7 +647,7 @@ def main():
                    stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders, scarab_skill_used,
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
-                   frost_breath_root, leave_ends_only_its_own_cast):
+                   frost_breath_root, leave_ends_only_its_own_cast, held_runs_let_go):
             fn(cfg, data)
     finally:
         time.time = TM._real_time
