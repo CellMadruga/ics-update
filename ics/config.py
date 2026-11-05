@@ -205,6 +205,8 @@ DEFAULTS = {
         # 2026-11-03 (tester report 2026-11-03 00:32: Superman's E punch hit the enemy the dash only touched): a name used
         # in two local frames (operand source 3, 4, 5 ...) is two variables, as the original's frames are separate
         # memory (Heat Vision's target vs the dash's collider, both "TargetIID"; 95 scripts). false = one per name
+        # 2026-11-05 (PR #4 review, finding 4): a split local reads the engine's by-name write (request, ShooterIID ...)
+        # until its frame is written; var_by_name sees frame writes; an engine write replaces the frame copies
         "local_frames": True,
         # 2026-11-03 (tester report 2026-11-03 00:32: Superman's E punch had no animation, a basic attack cut it): the
         # basic attack a skill queues (QueueOrder 0x100000DB) waits while one of the champion's skills is in its cast, as

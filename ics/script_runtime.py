@@ -943,10 +943,23 @@ class Instance:
         return self.script.names.get(h, f"{h:#x}")
 
     def vars_by_name(self, name, value):
-        self.vars[V.elf_hash(name)] = value
+        h = V.elf_hash(name)
+        self.vars[h] = value
+        if LOCAL_FRAMES:
+            # 2026-11-05 (PR #4 review, finding 4): an engine write is the newest value of the name, so the frames'
+            # own copies give way to it (as before local_frames); the script's next write makes a frame copy again
+            for k in [k for k in self.vars if isinstance(k, tuple) and k[1] == h]:
+                del self.vars[k]
 
     def var_by_name(self, name, default=None):
-        return self.vars.get(V.elf_hash(name), default)
+        h = V.elf_hash(name)
+        if LOCAL_FRAMES:
+            # 2026-11-05 (PR #4 review, finding 4): a split local the script wrote lives under (source, hash); it is
+            # newer than the plain key (vars_by_name drops the frame copies), so the outermost frame's copy first
+            frames = sorted(k for k in self.vars if isinstance(k, tuple) and k[1] == h)
+            if frames:
+                return self.vars[frames[0]]
+        return self.vars.get(h, default)
 
     def get(self, op):
         if op is None:
@@ -961,6 +974,10 @@ class Instance:
             key = (op.source, op.value)
             if key in self.vars:
                 return self.vars[key]
+            if op.value in self.vars:
+                # 2026-11-05 (PR #4 review, finding 4): what the engine or the request wrote by name (ShooterIID,
+                # TargetIID ...), which the defaults snapshot (taken before the request) does not hold
+                return self.vars[op.value]
             snap = getattr(self, "defaults_snapshot", {}) or {}
             return snap.get(op.value, 0)
         if op.value in self.vars:

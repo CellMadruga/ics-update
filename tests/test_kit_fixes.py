@@ -251,6 +251,26 @@ def heat_vision_punch_through(cfg, data):
           inst.get(op3) == "the target" and inst.get(op5) == "a collider", f"{inst.get(op3)} / {inst.get(op5)}")
 
 
+
+def local_frames_see_the_engine(cfg, data):
+    """PR #4 review, finding 4: a split local reads what the engine wrote by name until the script writes its frame,
+    and the engine's var_by_name sees the script's frame writes."""
+    from ics import script_model as SM
+    w, s, ch, bot, tick, logs = world_with(cfg, data, 0x4000002B, bot_dx=3.5)
+    inst = ch.skill_insts.get(3)
+    h = SM.elf_hash("TargetIID")
+    op3, op5 = SM.Operand(h, 3, 0), SM.Operand(h, 5, 0)
+    inst.vars_by_name("TargetIID", "the request's target")
+    check("an unwritten frame reads the engine's TargetIID", inst.get(op3) == "the request's target",
+          f"{inst.get(op3)}")
+    inst.set(op3, "the script's target")
+    inst.set(op5, "a collider")
+    check("the engine's var_by_name sees the script's frame write (the outer frame)",
+          inst.var_by_name("TargetIID") == "the script's target", f"{inst.var_by_name('TargetIID')}")
+    inst.vars_by_name("TargetIID", "a new request")
+    check("a later engine write is what every frame reads", inst.get(op3) == "a new request" == inst.get(op5),
+          f"{inst.get(op3)} / {inst.get(op5)}")
+
 def heat_vision_diagonal(cfg, data):
     """The knockback goes on along the line from Superman (status 0x340003F8: Offset(source, target) as the heading)."""
     w, s, ch, bot, tick, logs = world_with(cfg, data, 0x4000002B, bot_dx=0.0)
@@ -564,7 +584,7 @@ def main():
     time.time = TM._virtual_time
     try:
         for fn in (jack_in_the_box, punch_line, stick_and_move, infiltrator_mode, construct_teleport,
-                   heat_vision_knockback, heat_vision_punch, heat_vision_punch_through, heat_vision_diagonal,
+                   heat_vision_knockback, heat_vision_punch, heat_vision_punch_through, local_frames_see_the_engine, heat_vision_diagonal,
                    stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders, scarab_skill_used,
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
