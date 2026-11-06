@@ -6,7 +6,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x10000004		0x40	0x9973B0	0x15FAF44	{r4} r4 r4 O O O	1	1	data only	
 0x10000005	SetSkillAttached	0x28	0x99C9A0			0	0	handled	fase3-hk: raises 0x10000022 (a live skill target is set) or 0x10000014 on its own script; Grab missile 0x340002C1 T12 -> S9 (attach + shooter pull graph event 0x10000331) (P)
 0x10000006		0x3C	0x9987A0	0x15FB6C4	B O O	2	2	data only	
-0x10000007	StartCooldown	0x58	0x99D1E0	0x15FD638	B O O O r4 O O O O O r4 r1 O	181	145	partial	run by the new server (ics/script_runtime.py); With an explicit slot: that slot's remaining time, 0 = ready (Blue Beetle's form swap; anim-19, [ics] slot_cooldown_vars)
+0x10000007	StartCooldown	0x58	0x99D1E0	0x15FD638	B O O O r4 O O O O O r4 r1 O	181	145	partial	run by the new server (ics/script_runtime.py); With an explicit slot: that slot's remaining time, 0 = ready, only when the script reads the duration from a cooldown slot 0x20 + 8 x slot (ics/cooldown_flow.py: Blue Beetle's six swap nodes; anim-40); otherwise an ordinary cooldown with reduction (Blue Beetle's form swap; anim-19, [ics] slot_cooldown_vars)
 0x10000008		0x4C	0x9CA6F0	0x15FE0A4	{B O O r1 r1 r1 r1 O r4 r4} r4 O O {r4}	56	49	data only	
 0x10000009		0x3C	0x99C8C0			8	5	data only	
 0x1000000A		0x10	0x981EE0			30	20	partial	run by the new server (ics/script_runtime.py)
@@ -283,7 +283,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x1000015E		0x8	0x981000			0	0	data only	
 0x10000160		0x24	0x99A350			0	0	data only	
 0x10000161		0x24	0x99B000			0	0	data only	
-0x10000162		0x44	0x99D5B0	0x15FD818	B O O	3	3	data only	
+0x10000162	AddDefeatGuard	0x44	0x99D5B0	0x15FD818	B O O	3	3	implemented (P)	type-0 defeat guard [add 1 / remove 0, type]: a lethal hit is held at 1 health and raises 0x1000011B {KillerIID}; anim-40: also non-script hits ([ics] defeat_guard_all_damage), except a guard whose script needs a champion killer (Possession 0x3400041C; ics/defeat_guard.py, [ics] defeat_guard_champion_killer). Users: 0x3400041C, 0x34000662, 0x340004DE, 0x340007E9
 0x10000163		0x38	0x99A570	0x15FC26C	B O O r4 r4	0	0	data only	
 0x10000164		0x20	0x99A4C0			0	0	data only	
 0x10000165		0x54	0x99BB40	0x15FCCDC	B O O r4 O	0	0	data only	
@@ -330,7 +330,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x10000191		0x54	0x99B3A0	0x15FC8CC	B O O	0	0	data only	
 0x10000193		0x18	0x981610			0	0	data only	
 0x10000194		0x10	0x981970			0	0	data only	
-0x10000195	SkillEcho	0x24	0x99CD80			17	14	implemented (P)	run by the new server (ics/script_runtime.py); anim-22: raises 'skill used' 0x10000196 {Slot 0x5A364} on the owner's scripts (Blue Beetle's passive 0x34000456 reads it; [ics] skill_echo_node); anim-24: only when the use's activation did not raise it (every taken use raises it again, the W's detonation too; [ics] skill_used_every_use)
+0x10000195	SkillEcho	0x24	0x99CD80			17	14	implemented (P)	run by the new server (ics/script_runtime.py); anim-22: raises 'skill used' 0x10000196 {Slot 0x5A364} on the owner's scripts (Blue Beetle's passive 0x34000456 reads it; [ics] skill_echo_node); anim-24: only when the use's activation did not raise it (every taken use raises it again, the W's detonation too; [ics] skill_used_every_use); anim-40: only the slot's own skill script raises it (Shazam's chain 0x340006FF; [ics] skill_echo_own_slot)
 0x10000197		0x28	0x997000			0	0	data only	
 0x10000198		0x40	0x999A90	0x15FBE48	B O O r4 r4 r1 r1 r1	0	0	data only	
 0x10000199		0x34	0x9CA620	0x15FE2DC	B O O O r1 r4 r4 r4 r4 r4 r4 r4 {r4} {r4} r1 r4 r1	0	0	data only	
