@@ -65,7 +65,7 @@ LOCAL_FRAMES = True                  # [ics] local_frames (Superman's E punch ta
 SLOT_COOLDOWN_VARS = True            # [ics] slot_cooldown_vars (Blue Beetle's per-form cooldowns, 2026-11-03)
 HEADING_FROM_VECTOR = True           # [ics] heading_from_vector (Superman's E knockback direction, 2026-11-03)
 GRAPH_DONE_WAITS = True              # [ics] graph_done_waits (Superman's E punch animation, 2026-11-03)
-LAUNCH_SETS_TARGET = True            # [ics] spawn_event_after_chain (Blue Beetle's E shots, 2026-11-03)
+LAUNCH_SETS_TARGET = True            # [ics] launch_sets_target (Blue Beetle's E shots, 2026-11-03)
 HANDLE_RUNS = True                   # [ics] scriptlet_handle_runs (a StopScriptlet stops its own run, 2026-11-03)
 SKILL_ECHO_NODE = True               # [ics] skill_echo_node (Blue Beetle's passive, 2026-11-03)
 SKILL_ECHO_OWN_SLOT = True           # [ics] skill_echo_own_slot (Shazam's chain, PR #4 review, 2026-11-05)
@@ -511,7 +511,7 @@ class Missile:
                     inst.vars_by_name("ShooterIID", self.owner)      # its damage checks CheckRelation(Shooter, ...)
                 if LAUNCH_SETS_TARGET and "TargetIID" in aim and not inst.var_by_name("TargetIID"):
                     # 2026-11-03 (Blue Beetle's E shot 0x340004AA checks IsAlive($TargetIID) as soon as it is launched,
-                    # before 0x100000EE below; P, [ics] spawn_event_after_chain)
+                    # before 0x100000EE below; P, [ics] launch_sets_target)
                     inst.vars_by_name("TargetIID", aim["TargetIID"])
             raise_event(self.world, self.carried, EVENT_SPAWN)
             raise_event(self.world, self.carried, EVENT_MISSILE_TARGET, aim)
@@ -3196,7 +3196,9 @@ def activate(inst, target=None, point=None):
     inst.use_echoed = inst.echo_raised = False
     taken = bool(inst.event(EVENT_ACTIVATE, params))
     if SKILL_USED_BROADCAST and isinstance(inst.slot, int) and 1 <= inst.slot <= 4 \
-            and (taken or not SKILL_USED_BROADCAST_TAKEN)             and (SKILL_USED_EVERY_USE or not (SKILL_ECHO_NODE and _has_echo(inst.script)))             and not (SKILL_USED_EVERY_USE and inst.echo_raised):
+            and (taken or not SKILL_USED_BROADCAST_TAKEN) \
+            and (SKILL_USED_EVERY_USE or not (SKILL_ECHO_NODE and _has_echo(inst.script))) \
+            and not (SKILL_USED_EVERY_USE and inst.echo_raised):
         # 2026-10-25 (kit-audit-2.md 4: Huntress / Flash / Green Lantern / Nightmare Catwoman passives count it): a Q/W/
         # E/R use raises 0x10000196 {Slot} on all the owner's scripts. 2026-10-28 15:00 (tester report; test-2026-10-28-
         # 1439-sweep.md S5: 10 of 16 Smite uses were ignored by the script): only a use the script took ([ics]

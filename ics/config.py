@@ -236,9 +236,13 @@ DEFAULTS = {
         # that cast; a newer cast on the same instance keeps running
         "graph_done_waits": True,
         # 2026-11-03 (tester report 14:43: Blue Beetle's E shots never fly, each destroyed 77 ms after its creation): a
-        # script-spawned entity's 0x10000049 comes after the spawning chain, and LaunchMissile of an entity gives its
-        # scripts TargetIID before its events (P: the client evaluates once per update). false = at once, as before
+        # script-spawned entity's 0x10000049 comes after the spawning chain (P: the client evaluates once per update).
+        # false = at once, as before
         "spawn_event_after_chain": True,
+        # 2026-11-03 (same report) / 2026-11-05 (PR #4 review 7d: one key per behaviour, split from
+        # spawn_event_after_chain): LaunchMissile of a spawned entity gives its scripts TargetIID before its events
+        # (P). false = no TargetIID, as before
+        "launch_sets_target": True,
         # 2026-11-03 (tester: Blue Beetle's E shots hit for 0): a skill's spawned object reads LoadSkillStats' "this slot"
         # as the slot of the skill that spawned it (P; false = no slot, stats 0)
         "spawned_entity_skill_slot": True,
@@ -281,11 +285,13 @@ DEFAULTS = {
         "log_forced_motion": True,
         # 2026-11-04 (tester report 15:25: the first Heat Vision knockback of the match looked like a teleport; its
         # status started 0.13 s late, while its script was looked up in the packs for the first time): the statuses a
-        # champion's kit can apply are read at its creation (loading screen) (false = at their first use, as before)
+        # champion's kit can apply are read at its creation (loading screen) (false = at their first use, as before).
+        # For the bots too, on purpose (PR #4 review 7e): they run the same scripts, and their first push lagged too
         "prewarm_statuses": True,
         # 2026-11-05 (tester report: Blue Beetle's Q explosion missing at the first cast only; the first SpawnEntity of
         # 0x40000CD8 read its class data for 69 ms, the script's collision delay ran out meanwhile): the object classes
-        # the kit's scripts create, and their scripts, are read at the champion's creation too (false = on first use)
+        # the kit's scripts create, and their scripts, are read at the champion's creation too (false = on first use).
+        # Bots included, on purpose (PR #4 review 7e)
         "prewarm_spawn_classes": True,
         # 2026-11-04 (tester report 15:23: Blue Beetle's Q explosion in 2 of 16 casts; its emitter started on the client
         # before the explosion object was placed: the client replays movement states >= 0.1 s old, client-movement.md
@@ -393,7 +399,8 @@ DEFAULTS = {
         "cast_holds_movement": True,
         # 2026-11-04 (tester report 00:56: he walks before the basic attack's animation ends; the graph's attack states
         # have no movement early-out, their Cosmetic tails do): a move ordered while the graph is in the basic attack's
-        # state waits for its exit (P; false = moves at once, as before)
+        # state waits for its exit (P; false = moves at once, as before). For the bots too, on purpose (PR #4 review
+        # 7e): they run the same basic attack scripts and their swings were cut the same way
         "basic_attack_holds_movement": True,
         # 2026-11-04 (tester report 00:56: he shoots with his back to the target): a champion's attack step no longer
         # turns him on the server first; his basic attack script's FaceTarget does, and sends it (false = as before)

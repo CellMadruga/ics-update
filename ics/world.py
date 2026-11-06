@@ -620,7 +620,8 @@ class World:
         states go unlabelled, so traffic.log never showed them): a label for the state of an entity in a forced movement
         (knockback / dash), None otherwise; the bytes are the same ([ics] log_forced_motion)."""
         c = self.__dict__.get("_combat")
-        if not self.ic.get("log_forced_motion", True) or c is None or R._key(ent) not in c.states                 or c.of(ent).motion is None:
+        if (not self.ic.get("log_forced_motion", True) or c is None or R._key(ent) not in c.states
+                or c.of(ent).motion is None):
             return None
         return (f"{ent.name}: forced movement state ({ent.pos[0]:.2f}, {ent.pos[1]:.2f}) speed {float(ent.speed or 0):.1f}"
                 f" heading {math.degrees(ent.heading):.0f}")

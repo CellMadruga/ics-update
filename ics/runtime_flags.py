@@ -15,7 +15,7 @@ FLAGS = {
     "SLOT_COOLDOWN_VARS": "slot_cooldown_vars",
     "HEADING_FROM_VECTOR": "heading_from_vector",
     "GRAPH_DONE_WAITS": "graph_done_waits",
-    "LAUNCH_SETS_TARGET": "spawn_event_after_chain",
+    "LAUNCH_SETS_TARGET": "launch_sets_target",
     "HANDLE_RUNS": "scriptlet_handle_runs",
     "SKILL_ECHO_NODE": "skill_echo_node",
     "SKILL_ECHO_OWN_SLOT": "skill_echo_own_slot",
