@@ -305,6 +305,11 @@ DEFAULTS = {
         # type-0 defeat guard (0x10000162) also stops the direct hits of turrets / minions / bosses / objectives
         # (World.damage) and raises 0x1000011B, as script damage does (false = only script damage, as before)
         "defeat_guard_all_damage": True,
+        # 2026-11-05 (PR #4 review, finding 3; headless: a turret could never kill Nightmare Superman, his Possession
+        # 0x3400041C possesses only a champion killer and its failed branch empties the bar with a SpendCost flag ics
+        # does not apply here): a guard whose script requires a champion killer (IsKind 8 on the copied KillerIID)
+        # holds a non-script hit only from a champion (P; ics/defeat_guard.py). false = every killer
+        "defeat_guard_champion_killer": True,
         # 2026-10-29 tester report 2026-10-29 14:40 (R: the first pulse fires at once, the detonation is hardly seen;
         # docs/re-notes/agl-qer-lift.md 3, C log 14:28:21.105-.239 + original video 61.0-66.0 s: pulses ~1 s apart, the
         # first ~1 s after the impact): in these status scripts a timer the update chain tests before it was ever started

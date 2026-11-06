@@ -649,6 +649,34 @@ def skill_used_once_per_use(cfg, data):
     check("Shazam's Q (and its chain) raises 'skill used' once", len(used) == 1, f"{len(used)}: {used}")
 
 
+def defeat_guards_vs_turrets(cfg, data):
+    """PR #4 review, finding 3: with a type-0 defeat guard, a turret's lethal hits leave no champion unkillable;
+    Nightmare Superman's Possession needs a champion killer, so a turret kills him ([ics] defeat_guard_champion_killer)."""
+    from ics.world import CastWorld
+    from ics import script_nodes as N
+    for name, variant in (("Nightmare Superman", 0x400007C0), ("Solomon Grundy", 0x40000C44),
+                          ("Atomic Joker", ATOMIC_JOKER)):
+        w, s, ch, bot, tick, logs = world_with(cfg, data, variant)
+        tick(3.0)
+        turret = next(e for e in w.entities.values()
+                      if str(getattr(e, "name", "")).startswith("turret") and e.team != ch.team)
+        hits = 0
+        while ch.alive and hits < 5:
+            w.damage(turret, ch, ch.health + 50.0)
+            hits += 1
+            tick(4.0)
+        check(f"{name}: a turret's lethal hits kill him (no endless guard)", not ch.alive, f"alive after {hits} hits")
+        if name == "Nightmare Superman":
+            check("Nightmare Superman: a turret kills him at once (Possession needs a champion)", hits == 1, f"{hits}")
+        else:
+            check(f"{name}: the passive answers the first lethal hit", hits == 2, f"{hits} hits")
+    w, s, ch, bot, tick, logs = world_with(cfg, data, 0x400007C0)
+    tick(3.0)
+    N.deal_damage(CastWorld(w, bot, None), bot, ch, ch.health + 50.0, 3)
+    tick(1.0)
+    check("Nightmare Superman: an enemy champion's lethal hit starts Possession", ch.alive, f"health {ch.health}")
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -669,7 +697,7 @@ def main():
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
                    frost_breath_root, leave_ends_only_its_own_cast, held_runs_let_go,
-                   skill_used_once_per_use):
+                   skill_used_once_per_use, defeat_guards_vs_turrets):
             fn(cfg, data)
     finally:
         time.time = TM._real_time

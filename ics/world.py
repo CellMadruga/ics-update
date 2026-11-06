@@ -17,6 +17,7 @@ from . import records
 from . import script_model as V
 from . import script_runtime as R
 from . import prewarm
+from . import defeat_guard
 from . import scriptlet_orders
 from . import skill_slots
 from .wire import KIND_ARRAY, KIND_BOOL, KIND_DID, KIND_ENUM, KIND_F32, KIND_IID, KIND_INT, KIND_TABLE, KIND_U32
@@ -2286,7 +2287,9 @@ class World:
             return
         c = self.__dict__.get("_combat")
         if (amount >= target.health and c is not None and R._key(target) in c.states and 0 in c.guarded(target)
-                and self.ic.get("defeat_guard_all_damage", True)):
+                and self.ic.get("defeat_guard_all_damage", True)
+                and (not self.ic.get("defeat_guard_champion_killer", True)
+                     or defeat_guard.holds(R.scripts_on(CastWorld(self, target, None), target), source))):
             # 2026-11-02 (tester report 2026-11-02 01:43: Atomic Joker's passive The Punch Line did not start when a
             # turret killed him): turrets, minions, bosses and objectives hit through here, past script_nodes.deal_damage's
             # defeat guard; a type-0 guard stops the lethal hit and raises 0x1000011B {KillerIID} the same way
