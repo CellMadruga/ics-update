@@ -89,7 +89,10 @@ def main():
                "pvp_stub_seconds": 0.8, "victory_hold": 0.3, "login_extras_delay": 0.2, "bot_seed": 7,
                "spawn_layout": False, "player_name": "FlowTester", "pvp_mode_layer": False,
                "menu_refresh_after_match": 0.3, "start_crisis_coins": 200,
-               "own_all_except": [], "account_grants": []})
+               "own_all_except": [], "account_grants": [],
+               # 2026-11-06: a local config.toml's bot_champions (one forced variant) left 3 champions in the match;
+               # the 10-champion checks need the roster pool
+               "bot_champions": []})
     # 2026-10-29 22:30 (tester's store test): [ics] own_all_except and account_grants
     from ics import account as A2
     ic2 = dict(ic, own_all_except=["0x400007FA", "0x40000999"], account_grants=[{"id": "t", "soft": 10, "hard": 2}])
