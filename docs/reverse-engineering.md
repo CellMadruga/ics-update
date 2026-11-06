@@ -4472,3 +4472,29 @@ Game test 2026-11-03 23:21-23:27 (Superman, Blue Beetle on Coast City PvP).
   casts: creation at once, collision ~106 ms after. With anim-30's placement fix every cast but the first showed the
   explosion. ics/prewarm.py now reads, at each champion's creation, the classes its kit's scripts name and walks their
   scripts (0x40000815 -> 0x34000489 -> 0x40000CD8).
+
+## PR #4 review (2026-11-05 / 06, anim-40)
+
+- **Graph state enter / exit order (C).** Graph definition vtable 0x15A8218, slot 10 (enter) = 0x448A60: the state's
+  enter chain (+8, run by 0x45ADF0), then `ctx->vt[0x5C](0, 0)` = 0x449040, which exits the active sub-state (its
+  definition's slot 14), stores the new index at +0x68 and enters it (slot 10). Plain state (vt 0x15A7F98) slot 10 =
+  0x4489F0: the chain only. Graph slot 14 (exit) = 0x448AA0: 0x449040(0, -1) first, then the exit chain (+0x10). The
+  graph's update only updates the active sub-state. Runtime objects: vt 0x15A8020 (state), 0x15A81B8 (graph).
+- **Cooldown slots.** StartCooldown with an explicit slot: 32 nodes in 24 scripts; only Blue Beetle's 0x34000451 / 454 /
+  455 feed it a time read from the owner block's cooldown slots (0x20 + 8 x slot, slots 0-5; six scripts read them:
+  those three and Green Arrow's 0x3400040E / 40D / 410). ics/cooldown_flow.py follows the copies (builtin 0x11) and
+  assignments (0x1) from those slots.
+- **Kit-check differences, explained (P where noted).** Nightwing R 0x34000794: its sub-graph explodes the bike on
+  NOT HasStatus(LetsRideEffectHandle), the status its parent's enter applies; child-first exploded it at once.
+  Dex-Starr: a left sub-graph of the passive 0x340006B8 restarted a Will drain nobody stopped; his W 0x340006B7 S1 is a
+  ~3.1 s aiming window that the chain's own code 2 closed at once. Stargirl W 0x3400056D: small stars need
+  CanSee(-, TargetIID), an unset observer is the owner (0x992280). Status scripts whose graph-state enter sets what the
+  sub-graph uses (as Superman's knockback 0x340003F8): Grundy R 0x340006AB, Mecha WW R 0x34000318, Robin's knockback
+  0x3400013B, Harley's W knockback 0x34000360 (moves the minions her R then hits), Gaslight Joker's Ham Toss
+  0x34000221 (minions walk to the ham, into his R's aura). AGL passive 0x340002B3: graph S2/S1's TargetIID (source 5)
+  is zeroed at its enter and filled only by a basic hit; one variable per name let the W's target fire it.
+  Basic attacks moving between kit-check windows: Wonder Woman W 0x34000192 (ally / self only), Deathstroke, Zatanna,
+  Gaslight Catwoman, Grundy Q / W.
+- **Defeat guards (type 0).** Possession 0x3400041C copies KillerIID into TargetIID and needs IsKind 8 (a champion);
+  its failed branch is SpendCost(-100 %)[2, 1]. Deathstroke's E missile 0x340007E9 puts a guard on the unit it carries
+  (IsKind 0x10100) for ~0.35 s. Shazam's chain lightning 0x340006FF runs with the Q's slot and calls SkillEcho per hop.

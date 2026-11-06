@@ -2475,6 +2475,50 @@ starting the intro's conversations during the game, over the director's lines.
 - A full survey of the install was started (docs/re-notes: install inventory, script nodes, protocol, units and AI,
   maps, client scripts and UI, properties, account systems, cinematics / VFX / audio).
 
+## anim-40 — PR #4 review: cooldowns, local frames, casts, held runs, defeat guards
+
+Branch `ics/kit-fixes-pr`, 2026-11-05 / 06. Eric's review of PR #4 (2026-11-05 04:03, changes requested): the kit
+check moved 30 slots in 16 champions outside the four, seven code findings, the tool did not read 11 runtime flags.
+
+### What changed
+
+- `ics/runtime_flags.py`: the 11 script-runtime switches applied from `[ics]` by the server and by
+  `tools/champion_check.py` (the tool used to keep the module defaults).
+- Cooldowns (findings 1, 5): `ics/cooldown_flow.py` restores a saved cooldown only when the script reads its duration
+  from a cooldown slot (Blue Beetle's six form-swap nodes); the other 26 explicit-slot StartCooldowns take cooldown
+  reduction and 0 does nothing, as on main. The owner-block read covers slots 0-5 only.
+- `local_frames` (finding 4): a split local falls back to the engine's by-name value; `var_by_name` reads frame
+  writes; an engine write replaces the frame copies.
+- `graph_done_waits` (finding 6): leaving a state ends only the cast it started.
+- `scriptlet_orders` (finding 2, 7a, 7b): held runs are let go on death, respawn and when their script ends;
+  `of()` removed; docstrings say 0x8D is the default.
+- `skill_echo_own_slot` (new): only the slot's own skill script raises "skill used" (Shazam's chain lightning
+  0x340006FF counted four uses per Q).
+- `defeat_guard_champion_killer` (new, finding 3): a guard whose script needs a champion killer (Nightmare Superman's
+  Possession 0x3400041C) holds a non-script lethal hit only from a champion; a turret could never kill him.
+- 7c line breaks, 7d `launch_sets_target` (new, split from `spawn_event_after_chain`), 7e bot notes in config.
+
+### Found
+
+- C (exe): a graph state enters its own chain before its sub-state (0x448A60 -> 0x449040) and leaves its sub-state
+  first (0x448AA0); a left sub-graph is no longer updated. `graph_enter_before_children` and `stop_left_subgraphs`
+  follow it. Kit-check differences explained per champion in reverse-engineering.md "PR #4 review".
+
+### Config keys
+
+`skill_echo_own_slot` (true), `defeat_guard_champion_killer` (true), `launch_sets_target` (true).
+
+### How to roll back
+
+In `[ics]`: `skill_echo_own_slot = false`, `defeat_guard_champion_killer = false`, `launch_sets_target = false`; the
+other fixes go with their existing keys (`slot_cooldown_vars`, `local_frames`, `graph_done_waits`,
+`scriptlet_orders`, `defeat_guard_all_damage`).
+
+### Pending
+
+- Where the exe reads the defeat type (to make `defeat_guard_all_damage` C).
+- Stargirl's W fires 3 of its 4 small stars (expression 0xC, server only, P).
+
 ## anim-32 — the classes a kit creates are read at load (the first Q explosion)
 
 Branch `ics/kit-fixes`, 2026-11-05.
