@@ -1555,6 +1555,10 @@ class Session:
         command, ability = struct.unpack_from("<II", msg.body, 0)
         target_id = struct.unpack_from("<Q", msg.body, 8)[0]
         target = w.entities.get(target_id)
+        if target is None and target_id and target_id == getattr(ch, "eid", None):
+            # 2026-11-07 (tester report: Wonder Woman's W on herself did nothing): the client names the champion's own
+            # IID for a self cast; the champion is not in w.entities ([ics] order_self_target)
+            target = ch if self.ic.get("order_self_target", True) else None
         point = None
         if len(msg.body) >= 17:
             point = w.from_wire(parse_client_position(msg.body, 16))

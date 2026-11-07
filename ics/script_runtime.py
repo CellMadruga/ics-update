@@ -68,6 +68,7 @@ GRAPH_DONE_WAITS = True              # [ics] graph_done_waits (Superman's E punc
 LAUNCH_SETS_TARGET = True            # [ics] launch_sets_target (Blue Beetle's E shots, 2026-11-03)
 HANDLE_RUNS = True                   # [ics] scriptlet_handle_runs (a StopScriptlet stops its own run, 2026-11-03)
 SKILL_ECHO_NODE = True               # [ics] skill_echo_node (Blue Beetle's passive, 2026-11-03)
+EXIT_SEES_EVENT = True               # [ics] exit_chain_sees_event (Wonder Woman's W cooldown, 2026-11-07)
 SKILL_ECHO_OWN_SLOT = True           # [ics] skill_echo_own_slot (Shazam's chain, PR #4 review, 2026-11-05)
 SKILL_USED_EVERY_USE = True          # [ics] skill_used_every_use (Blue Beetle's W detonation, 2026-11-03 23:24)
 STATUS_TIMER_FIRST_WAIT = {0x340002BF}  # [ics] status_timer_first_wait: status script DIDs (agl-qer-lift.md 3)
@@ -1205,6 +1206,8 @@ class Region:
         # its hits itself (0x3400003F S3: NumCollisions = ++NumCollisions after the damage, in the IfThenElse's
         # after chain, which the runtime now runs)
         self.leave()
+        if inst.__dict__.pop("consume_after_leave", False):
+            inst.current_event = None          # the event that fired the transition (Region.check)
         st0 = self.graph.states[index] if index < len(self.graph.states) else None
         if RESET_LOCALS and st0 is not None and st0.locals:
             # 2026-10-25 (skill-mechanics-recipes.md 5, C: Shazam's chain search state kept its DetectIter from the
@@ -1430,7 +1433,14 @@ class Region:
             return False
         i, t = fired
         self.log(f"S{self.state} -> S{t.target} (T{i})")
-        inst.current_event = None if use_event else saved
+        if use_event and EXIT_SEES_EVENT:
+            # 2026-11-07 (tester report: Wonder Woman's W on an ally showed "Path Blocked" and started no cooldown; her
+            # 0x34000192 S5 exit starts the cooldown only if the exit came from the dash's end events, else shows the
+            # error): the state's exit chain still sees the event that fired the transition; it is consumed before the
+            # target state's enter (Region._enter) ([ics] exit_chain_sees_event)
+            inst.__dict__["consume_after_leave"] = True
+        else:
+            inst.current_event = None if use_event else saved
         if use_event:
             inst.event_consumed = True
             self._event_epoch = self.__dict__.get("_event_epoch", 0) + 1

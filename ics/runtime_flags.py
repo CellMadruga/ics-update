@@ -19,6 +19,7 @@ FLAGS = {
     "HANDLE_RUNS": "scriptlet_handle_runs",
     "SKILL_ECHO_NODE": "skill_echo_node",
     "SKILL_ECHO_OWN_SLOT": "skill_echo_own_slot",
+    "EXIT_SEES_EVENT": "exit_chain_sees_event",
     "SKILL_USED_EVERY_USE": "skill_used_every_use",
 }
 

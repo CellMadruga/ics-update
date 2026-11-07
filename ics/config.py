@@ -262,6 +262,13 @@ DEFAULTS = {
         # slot's own skill script raises it (P: from the data, the original's rule is not known). false = every script
         # with the slot
         "skill_echo_own_slot": True,
+        # 2026-11-07 (tester report: Wonder Woman's W cast on herself did nothing and started no cooldown): an order whose
+        # target IID is the champion's own targets the champion (false = no target, as before)
+        "order_self_target": True,
+        # 2026-11-07 (tester report: Wonder Woman's W on an ally showed "Path Blocked", no cooldown): a state's exit
+        # chain sees the event that fired the transition (her W's S5 exit tests the dash's end events); it is
+        # consumed before the next state's enter, as before (false = consumed before the exit chain, as before)
+        "exit_chain_sees_event": True,
         # 2026-11-03 (tester report 23:24: in the original the ranged W starts Blue Beetle's passive when launched or
         # detonated; the detonation is a second press with no SkillEcho): every taken use raises "skill used" 0x10000196
         # at its activation again; SkillEcho raises it only when the use's activation did not (false = anim-22)
