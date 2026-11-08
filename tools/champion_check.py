@@ -33,6 +33,7 @@ import argparse
 import json
 import math
 import os
+import random
 import sys
 import tempfile
 import time
@@ -317,6 +318,9 @@ def check_variant(T, R, V, cfg, data, probe, variant, name, entry, step=0.05, wi
     res.update(pack_info(data, variant, entry))
     logs = []
     s = T.FakeSession()
+    # 2026-11-08 (PR #4 review: two identical runs differed by 0.001 s): the simulated clock starts at a fixed time of
+    # the wall clock's size instead of time.time(), so float rounding is the same in every run
+    s.clock = 1.8e9
     _clock["s"] = s
     spawn = T.pvp.spawn_point(ENCOUNTER, 1)
     w = T.World(data, cfg, ENCOUNTER, spawn, send=s.send, schedule=s.schedule, log=logs.append)
@@ -711,6 +715,8 @@ def main(argv=None):
     ap.add_argument("--fixes", action="store_true", help="all the experiments above (missile scripts, range-angle, "
                     "raise-event)")
     ap.add_argument("--window", type=float, default=3.0, help="game seconds after each cast")
+    ap.add_argument("--seed", type=int, default=0, help="the script VM's random numbers start from this seed for "
+                    "each variant, so a full run and --only give the same numbers")
     ap.add_argument("--vs-champion", action="store_true", help="also cast every slot at an enemy bot champion and "
                     "report the damage it took (column 'vs bot' in the summary)")
     ap.add_argument("--recast", type=float, default=0.0, help="with --vs-champion: s after the cast at the bot "
@@ -810,6 +816,9 @@ def main(argv=None):
     print(f"{'variant':10} {'champion':30} {'S0':>4} {'Q':>4} {'W':>4} {'E':>4} {'R':>4}  notes")
     for variant, name, entry in variants:
         t1 = time.perf_counter()
+        # 2026-11-08 (PR #4 review: Gaslight Joker's R gave 594 or 297 between full runs and 594 with --only): the
+        # script VM draws from the global random module (Ham Toss's offset), so each variant starts from its own seed
+        random.seed(args.seed * 0x100000000 + variant)
         try:
             res = check_variant(T, R, V, cfg, data, probe, variant, name, entry, window=args.window)
         except Exception:                                  # noqa: BLE001
