@@ -60,6 +60,8 @@ everything is). The whole client is decompiled: `docs/re-notes/full-index.md`. E
 - `python tests\test_match.py` (608, PvP maps and mechanics), `python tests\test_meltdown.py` (77, AGL's R and Q on a still /
   walking bot) and `python tests\test_session_flow.py` (91, login -> queue -> select -> match -> rewards -> menu).
   `ICS_TEST_PORT` / `SESSION_TEST_PORT` move the ports of test_ics / test_session_flow.
+- `python tests\test_kit_fixes.py` (97) — champion kit fixes on a still bot (Superman, Blue Beetle, Atomic Joker, Atomic
+  Green Lantern, Wonder Woman, Nightwing, Krypto; defeat guards vs turrets).
 - `python tests\test_terrainfix.py` (33; `--real` adds 3 on copies of the installed packs) — the map-pack terrain patch.
   `python tools\champion_check.py --vs-champion --window 5 --out <json>` — every champion's kit headless (verdict and
   damage per slot); compare with the previous build's JSON.

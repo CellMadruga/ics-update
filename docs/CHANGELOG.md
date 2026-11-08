@@ -2500,7 +2500,7 @@ check moved 30 slots in 16 champions outside the four, seven code findings, the 
 
 ### 2026-11-07: in-game tests of the review (Wonder Woman W, Nightwing R, Krypto Q / W)
 
-What the tester reported (test branch `ics/pr4-test`, sessions 17:47, 19:51 and 20:23): Wonder Woman's W did nothing
+What the tester reported (this branch in game, sessions 17:47, 19:51 and 20:23): Wonder Woman's W did nothing
 on herself and, on an ally, showed "Path Blocked" with no cooldown; Nightwing's R gave no speed bonus, the bike never
 exploded on enemies and the thrown bike dealt no damage (the skill's text says 167); Krypto's Fetch! stick was
 invisible and the fetch dashed in place; his W stopped at the ally (in the original it goes a little past it and
@@ -2538,6 +2538,19 @@ shields every ally on the way).
   far past its target point, within its max distance. 31 of its 36 uses have 15; 13 only in Krypto's W 0x340005F2 and
   the unused 0x340005BD. Headless: an ally at 4 m -> a 5 m dash, shield 50 on Krypto, the ally on the way and the
   target.
+
+### Tool and tests (2026-11-08)
+
+- `tools/champion_check.py`: each variant starts the script VM's random numbers from its own seed (`--seed`, 0) and
+  the simulated clock from a fixed wall-clock-sized time. Before, Gaslight Joker's R gave 594 or 297 between full runs
+  (his W's ham toss has a random offset, which matters once the minions walk to the ham) and a full run disagreed with
+  `--only`; now two runs are identical and `--only` gives a full run's numbers. With every key of this PR off the
+  kit check matches `main` exactly.
+- `tests/test_kit_fixes.py` (97): Wonder Woman's W on herself through the client's order and on an ally (cooldown,
+  no skill error), Nightwing's ride speed and its explosion on contact, the thrown bike, Krypto's stick and fetch, his
+  W past the ally with every shield, and one hit per basic attack with either transition key off. With its key off,
+  each fix fails its own check (the basic-attack one fails without the transition_chain_pass guard). Listed in
+  CLAUDE.md and README.md.
 
 ### Found
 

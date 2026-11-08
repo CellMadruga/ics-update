@@ -7,10 +7,13 @@ clock):
 - his passive The Punch Line (0x340004DE) starts when a direct hit (a turret's World.damage) would kill him ([ics]
   defeat_guard_all_damage);
 - Blue Beetle 0x400007FA's E Stick And Move (0x34000455) hops with his back to the dash, fires at the enemy he hops
-  away from and keeps that yaw after the landing ([ics] facing_locks).
+  away from and keeps that yaw after the landing ([ics] facing_locks);
+- the 2026-11-07 game test (PR #4 review): Wonder Woman's W on herself and on an ally, Nightwing's ride and thrown bike,
+  Krypto's Fetch! and Man's Best Friend, one hit per basic attack with either transition key off.
 """
 import math
 import os
+import struct
 import sys
 import time
 
@@ -28,6 +31,7 @@ import test_meltdown as TM                               # noqa: E402
 ENCOUNTER = 0x40000C82                                   # Crime Alley
 ATOMIC_JOKER, BLUE_BEETLE, AWW = 0x40000962, 0x400007FA, 0x400003EC
 GREEN_ARROW = 0x400006F9
+WONDER_WOMAN, NIGHTWING, KRYPTO, POISON_IVY = 0x40000260, 0x40000DEE, 0x40000BE4, 0x40000145
 STEP = 0.05
 CHECKS = []
 
@@ -428,7 +432,8 @@ def basic_attack_turn_and_hold(cfg, data):
     check("the basic attack turns him to a target behind him (the facing reaches the client)",
           turned and any("faces the target" in (lb or "") for lb in s.labels(n)),
           f"heading {math.degrees(headings[-1]) if headings else None}")
-    check("a move ordered during the swing waits", bool(held) and held[0] == (True, True), f"{held} swing {len(swinging)}")
+    check("a move ordered during the swing waits", bool(held) and held[0] == (True, True),
+          f"{held} swing {len(swinging)}")
     check("the waiting move runs when the swing's state ends",
           getattr(ch, "pending_move", None) is None and ch.pos[0] > x0 + 0.5, f"moved {ch.pos[0] - x0:.2f} m")
 
@@ -524,7 +529,8 @@ def runtime_flags_follow_config(cfg):
 
 def cooldown_restore_only_from_slots(cfg, data):
     """PR #4 review, finding 1: only a StartCooldown whose duration the script reads from a cooldown slot restores it
-    (Blue Beetle's six form-swap nodes); the other explicit-slot ones keep cooldown reduction and the longer cooldown."""
+    (Blue Beetle's six form-swap nodes); the other explicit-slot ones keep cooldown reduction and the longer
+    cooldown."""
     import os as _os
     from ics import cooldown_flow as CF
     from ics import script_model as V
@@ -651,7 +657,8 @@ def skill_used_once_per_use(cfg, data):
 
 def defeat_guards_vs_turrets(cfg, data):
     """PR #4 review, finding 3: with a type-0 defeat guard, a turret's lethal hits leave no champion unkillable;
-    Nightmare Superman's Possession needs a champion killer, so a turret kills him ([ics] defeat_guard_champion_killer)."""
+    Nightmare Superman's Possession needs a champion killer, so a turret kills him
+    ([ics] defeat_guard_champion_killer)."""
     from ics.world import CastWorld
     from ics import script_nodes as N
     for name, variant in (("Nightmare Superman", 0x400007C0), ("Solomon Grundy", 0x40000C44),
@@ -677,6 +684,168 @@ def defeat_guards_vs_turrets(cfg, data):
     check("Nightmare Superman: an enemy champion's lethal hit starts Possession", ch.alive, f"health {ch.health}")
 
 
+class _OrderSession:
+    """What Session.ev_order uses: the match's world, [ics] and a log."""
+
+    def __init__(self, w, ic):
+        self.match = type("M", (), {"world": w})()
+        self.ic = ic
+        self.lines = []
+
+    def log(self, line):
+        self.lines.append(line)
+
+
+def _order(w, ic, slot, target_id):
+    from ics.session import Session
+    s = _OrderSession(w, ic)
+    body = struct.pack("<IIQ", 9, slot, target_id)          # command 9 = skill, no point
+    Session.ev_order(s, type("Msg", (), {"body": body})())
+    return s
+
+
+def wonder_woman_protection(cfg, data):
+    """Wonder Woman's W 0x34000192 on herself (the client's order names her own IID) and on an ally."""
+    for on in (True, False):
+        w, s, ch, bot, tick, logs = world_with(cfg, data, WONDER_WOMAN, bot_dx=30.0)
+        w.nav = None
+        _order(w, dict(w.ic, order_self_target=on), 2, ch.eid)
+        tick(2.0)
+        cd = ch.ready_at.get(2, 0.0) - s.clock
+        if on:
+            check("Wonder Woman's W on herself (her own IID in the order) is cast and cools down", cd > 5.0,
+                  f"cooldown left {cd:.1f} s")
+        else:
+            check("order_self_target = false: an order naming her own IID has no target, as before", cd <= 0.0,
+                  f"cooldown left {cd:.1f} s")
+    w, s, ch, bot, tick, logs = world_with(cfg, data, WONDER_WOMAN, bot_dx=30.0)
+    w.nav = None
+    ally = w.create_bot_champion(AWW, ch.team, "ally bot", 0, pos=[ch.pos[0] + 4.0, ch.pos[1], ch.pos[2]])
+    ally.move_speed = 0.0
+    mark = len(s.sent)
+    w.cast(ch, 2, ally, tuple(ally.pos))
+    tick(2.0)
+    cd = ch.ready_at.get(2, 0.0) - s.clock
+    errors = [label for label, _data in s.sent[mark:] if "skill error 0x10000034" in label]
+    check("Wonder Woman's W on an ally starts its cooldown (S5's exit sees the dash's end event)", cd > 5.0,
+          f"cooldown left {cd:.1f} s")
+    check("Wonder Woman's W on an ally shows no skill error 0x10000034 ([ics] exit_chain_sees_event)", not errors,
+          f"{errors[:1]}")
+
+
+def nightwing_ride(cfg, data):
+    """Nightwing's R 0x34000794: the ride status 0x340007C0 raises the speed in S1's update; touching an enemy
+    explodes."""
+    w, s, ch, bot, tick, logs = world_with(cfg, data, NIGHTWING, bot_dx=12.0)
+    w.nav = None
+    w.cast(ch, 4, None, None)
+    speeds = []
+    for _ in range(10):
+        tick(0.5)
+        speeds.append(float(w.combat.attribute(ch, 0x100005E4) or 0.0))
+    check("Nightwing's ride speeds him up over time ([ics] transition_event_mode)", speeds[-1] > 2.0 * speeds[0] > 0,
+          f"{[round(v, 1) for v in speeds]}")
+    hp0 = bot.health
+    ch.dest = None
+    ch.pos = [bot.pos[0] - 1.0, bot.pos[1], bot.pos[2]]
+    tick(1.0)
+    check("riding into the enemy champion explodes the bike ([ics] held_collision_contacts)", bot.health < hp0 - 50,
+          f"bot {hp0:.0f} -> {bot.health:.0f}")
+
+
+def nightwing_thrown_bike(cfg, data):
+    """The second press throws the bike 0x40000E6F: it explodes on an enemy champion (P, [ics] thrown_explosions)."""
+    for dx, off, label in ((6.0, False, "a thrown bike explodes on the enemy champion in its path"),
+                           (40.0, False, "a thrown bike far from the enemy does not hurt it"),
+                           (6.0, True, "thrown_explosions off: the thrown bike deals no damage, as before")):
+        w, s, ch, bot, tick, logs = world_with(cfg, data, NIGHTWING, bot_dx=dx)
+        w.nav = None
+        if off:
+            w.ic["thrown_explosions"] = {"0x40000E6F": {}}
+        w.cast(ch, 4, None, None)
+        tick(4.0)
+        hp = bot.health
+        w.cast(ch, 4, bot, tuple(bot.pos))
+        tick(3.0)
+        hurt = bot.health < hp - 50
+        check(label, hurt == (dx < 10 and not off), f"bot {hp:.0f} -> {bot.health:.0f}")
+
+
+def krypto_fetch(cfg, data):
+    """Krypto's Q 0x340005EE keeps the stick 0x40000BF2 in $TheStick, dashes to it on the second press, destroys it."""
+    w, s, ch, bot, tick, logs = world_with(cfg, data, KRYPTO, bot_dx=4.0)
+    w.nav = None
+    x0 = ch.pos[0]
+    w.cast(ch, 1, None, (ch.pos[0] + 7.0, ch.pos[1], ch.pos[2]))
+    tick(1.5)
+    gone = any("0x40000bf2 gone" in line for line in logs)
+    check("Fetch!'s stick lies where it lands ([ics] lobbed_missile_stays)", not gone)
+    w.cast(ch, 1, None, None)
+    tick(1.5)
+    moved = ch.pos[0] - x0
+    check("the second press dashes Krypto to the stick", moved > 5.0, f"moved {moved:.2f} m")
+    check("the stick is destroyed after the fetch", any("0x40000bf2 gone" in line for line in logs))
+
+
+def krypto_mans_best_friend(cfg, data):
+    """Krypto's W 0x340005F2: DashToPosition with first value 13 goes past the ally; every ally touched is shielded."""
+    for past in (1.0, 0.0):
+        w, s, ch, bot, tick, logs = world_with(cfg, data, KRYPTO, bot_dx=40.0)
+        w.nav = None
+        w.ic["dash_through_target"] = past
+        near = w.create_bot_champion(AWW, ch.team, "ally near", 0, pos=[ch.pos[0] + 2.0, ch.pos[1], ch.pos[2]])
+        far = w.create_bot_champion(AWW, ch.team, "ally target", 0, pos=[ch.pos[0] + 4.0, ch.pos[1], ch.pos[2]])
+        for a in (near, far):
+            a.move_speed = 0.0
+        x0 = ch.pos[0]
+        w.cast(ch, 2, far, tuple(far.pos))
+        tick(1.5)
+        moved = ch.pos[0] - x0
+
+        def shield(e):
+            return sum(v[1] for v in w.combat.of(e).shields.values())
+        if past:
+            check("Man's Best Friend dashes a little past the ally ([ics] dash_through_target 1 m)",
+                  4.6 <= moved <= 5.4, f"moved {moved:.2f} m")
+            check("Man's Best Friend shields Krypto, the ally on the way and the target",
+                  min(shield(ch), shield(near), shield(far)) > 0,
+                  f"{shield(ch):.0f} / {shield(near):.0f} / {shield(far):.0f}")
+        else:
+            check("dash_through_target = 0: the dash stops at the ally, as before", 3.4 <= moved <= 4.2,
+                  f"moved {moved:.2f} m")
+
+
+def basic_attack_one_hit_per_event(cfg, data):
+    """transition_chain_pass needs transition_event_mode: either key off alone keeps one hit per basic attack."""
+    def one_attack():
+        w, s, ch, bot, tick, logs = world_with(cfg, data, POISON_IVY)    # basic attack 0x34000037
+        hits = []
+        orig = w.damage
+
+        def damage(source, target, amount):
+            if target is bot:
+                hits.append(amount)
+            return orig(source, target, amount)
+        w.damage = damage
+        w.cast(ch, 0, bot, tuple(bot.pos))
+        tick(5.0)
+        w.damage = orig
+        return len(hits)
+    saved = (R.TRANSITION_EVENT_MODE, R.TRANSITION_CHAIN_PASS)
+    try:
+        counts = {}
+        for mode, chain in ((True, True), (False, True), (True, False), (False, False)):
+            R.TRANSITION_EVENT_MODE, R.TRANSITION_CHAIN_PASS = mode, chain
+            counts[(mode, chain)] = one_attack()
+    finally:
+        R.TRANSITION_EVENT_MODE, R.TRANSITION_CHAIN_PASS = saved
+    check("one basic attack order hits once in 5 s with the transition keys on", counts[(True, True)] == 1, f"{counts}")
+    check("transition_event_mode off alone: still one hit (no S1 -> S0 -> S1 loop)", counts[(False, True)] == 1,
+          f"{counts}")
+    check("transition_chain_pass off alone, or both off: one hit", counts[(True, False)] == counts[(False, False)] == 1,
+          f"{counts}")
+
+
 def main():
     cfg = config.load()
     cfg["ics"]["trace_scripts"] = True
@@ -692,12 +861,16 @@ def main():
     time.time = TM._virtual_time
     try:
         for fn in (jack_in_the_box, punch_line, stick_and_move, infiltrator_mode, construct_teleport,
-                   heat_vision_knockback, heat_vision_punch, heat_vision_punch_through, local_frames_see_the_engine, heat_vision_diagonal,
-                   stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders, scarab_skill_used,
+                   heat_vision_knockback, heat_vision_punch, heat_vision_punch_through, local_frames_see_the_engine,
+                   heat_vision_diagonal,
+                   stick_and_move_hits, blue_beetle_forms, cooldown_restore_only_from_slots, blue_beetle_passive_orders,
+                   scarab_skill_used,
                    basic_attack_turn_and_hold, quiet_messages_keep_one_order,
                    explosion_linger, prewarm_and_spawn_stamp,
                    frost_breath_root, leave_ends_only_its_own_cast, held_runs_let_go,
-                   skill_used_once_per_use, defeat_guards_vs_turrets):
+                   skill_used_once_per_use, defeat_guards_vs_turrets,
+                   wonder_woman_protection, nightwing_ride, nightwing_thrown_bike, krypto_fetch,
+                   krypto_mans_best_friend, basic_attack_one_hit_per_event):
             fn(cfg, data)
     finally:
         time.time = TM._real_time
