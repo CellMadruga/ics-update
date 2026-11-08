@@ -68,6 +68,8 @@ GRAPH_DONE_WAITS = True              # [ics] graph_done_waits (Superman's E punc
 LAUNCH_SETS_TARGET = True            # [ics] launch_sets_target (Blue Beetle's E shots, 2026-11-03)
 HANDLE_RUNS = True                   # [ics] scriptlet_handle_runs (a StopScriptlet stops its own run, 2026-11-03)
 SKILL_ECHO_NODE = True               # [ics] skill_echo_node (Blue Beetle's passive, 2026-11-03)
+TRANSITION_CHAIN_PASS = True         # [ics] transition_chain_pass (basic attack 0x34000037 hit, 2026-11-07)
+TRANSITION_EVENT_MODE = True         # [ics] transition_event_mode (Nightwing's ride speed, 2026-11-07)
 EXIT_SEES_EVENT = True               # [ics] exit_chain_sees_event (Wonder Woman's W cooldown, 2026-11-07)
 SKILL_ECHO_OWN_SLOT = True           # [ics] skill_echo_own_slot (Shazam's chain, PR #4 review, 2026-11-05)
 SKILL_USED_EVERY_USE = True          # [ics] skill_used_every_use (Blue Beetle's W detonation, 2026-11-03 23:24)
@@ -82,6 +84,7 @@ LOCAL_Y_FORWARD = True               # [ics] local_y_forward (skill-mechanics-re
 POLL_ONCE_PER_TICK = True            # [ics] script_poll_once_per_tick (map-objectives-recipes.md 6 gap 2)
 POLL_GUARD_EVENT_RESET = True        # [ics] poll_guard_event_reset (2026-10-28, R vs champions)
 EXIT_UPDATE = True                   # [ics] update_before_event_exit (2026-10-28, R vs champions)
+LOBBED_STAYS = True                  # [ics] lobbed_missile_stays (Krypto's Fetch! stick, 2026-11-07)
 EXPIRE_LINGER = 5.0                  # [ics] missile_expire_linger: s a busy missile script runs on after its expiry
 INT_COMPARE_32 = True                # [ics] int_compare_32bit (2026-10-28, R vs champions)
 TOP_GRAPH_CHAINS = True              # [ics] top_graph_chains (2026-10-28, R vs champions)
@@ -710,6 +713,28 @@ class Missile:
 
     def expire(self, trip):
         if self.alive and trip == self.trip:
+            keeper = getattr(self, "kept_by", None)
+            if (LOBBED_STAYS and self.lobbed and not self.instances and keeper is not None
+                    and not getattr(keeper, "removed", False)):
+                # 2026-11-07 (tester report: Krypto's Fetch! stick was invisible and the fetch dashed in place; the stick
+                # 0x40000BF2 has no script of its own, the Q 0x340005EE keeps it in $TheStick, dashes to it in S4 and
+                # destroys it in S6): a lobbed missile with no script whose launcher keeps its IID lies where it lands
+                # until that script's DestroyEntity or its end (P; [ics] lobbed_missile_stays)
+                self.expired = True
+                self.trip += 1
+                t = self.trip
+                body = getattr(self, "entity", None)
+                if body is not None and getattr(body, "pos", None) is not None:
+                    body.pos = list(self.pos)       # World.position reads the object: it lies at the landing point
+
+                def watch():
+                    if self.alive and self.trip == t:
+                        if getattr(keeper, "removed", False):
+                            self.end(t)
+                        else:
+                            self.world.after(1.0, watch)
+                self.world.after(1.0, watch)
+                return
             for inst in self.instances:
                 inst.event(EVENT_EXPIRED)
             if self.carried is not None:
@@ -1253,7 +1278,12 @@ class Region:
             inst.after(UPDATE_INTERVAL, poll)
         if self.state == index and self.visit == visit:
             if st.slots[0] is not None:
-                Chain(inst, st.slots[0], lambda code: self.finished(index, code)).run()
+                self._entering = index          # its own chain is running (Region.check, transition_event_mode)
+                try:
+                    Chain(inst, st.slots[0], lambda code: self.finished(index, code)).run()
+                finally:
+                    if self.__dict__.get("_entering") == index:
+                        self._entering = None
             else:
                 self.finished(index, RESULT_DONE)
         if st.is_graph and GRAPH_ENTER_FIRST and self.state == index and self.visit == visit and self.child is None:
@@ -1383,9 +1413,10 @@ class Region:
             return True
         return self.check(code=None)
 
-    def check(self, code=None, use_event=False):
+    def check(self, code=None, use_event=False, chain=0):
         """Fire the first transition that matches. An event can fire one transition only: it is consumed
-        before the target state runs, so a state entered because of it does not see it again."""
+        before the target state runs, so a state entered because of it does not see it again, except through its
+        b = 1 transitions in the same pass ([ics] transition_event_mode, chain = the pass number)."""
         inst = self.inst
         if inst.removed or self.__dict__.get("_leaving") or self.__dict__.get("_dead"):
             return False
@@ -1402,6 +1433,8 @@ class Region:
             for i, t in order:
                 if t.sources and self.state not in t.sources:
                     continue
+                if chain and t.b != 1:
+                    continue                    # a chained pass reads the state's second list (C 0x4496C0)
                 if (not t.sources and t.target == self.state and (code is None or not REENTER_ON_CODE) and not use_event
                         and ANY_NO_REENTER):
                     # 2026-10-23 18:00 (champion-kits-status.md 5: Starro's W re-entered S1 every tick, ~240
@@ -1421,7 +1454,19 @@ class Region:
                     # skipped: its hit transition S3 -> S6 had fired 0.05 s before): an event that moved this graph since
                     # (a new collision) lifts the guard ([ics] poll_guard_event_reset)
                     continue
-                if self.matches(t, code):
+                if t.trigger is None and t.a == 2 and t.b == 0 and TRANSITION_EVENT_MODE:
+                    # 2026-11-07 (tester report: Nightwing's ride gave no speed; C: the client keeps per state three
+                    # transition lists, a = 0 / 1 checked by each update before / after its update chain, 2 when an event
+                    # is dispatched (0x44A0F0 -> slot 13 0x449800 -> 0x4496C0(ctx, 2)); b = 1 also in the list checked
+                    # right after a transition entered the state in the same pass. A trigger-less a = 2, b = 0 one
+                    # fires at a later event, not when the state's chain ends: the ride status 0x340007C0 stays in S1,
+                    # whose update raises the speed ([ics] transition_event_mode). An event raised by the state's own
+                    # enter chain does not count: the client queues it (0x461430) until the chain is done (basic attack
+                    # 0x34000037 graph S2 S1: its ApplyDamage's events left S1 before its ApplySkill ran)
+                    ok = use_event and self.__dict__.get("_entering") != self.state
+                else:
+                    ok = self.matches(t, code)
+                if ok:
                     fired = (i, t)
                     if polled:
                         self.__dict__.setdefault("_polled_fired", {})[i] = (now, epoch)
@@ -1449,6 +1494,16 @@ class Region:
             self.enter(t.target)
         finally:
             self._event_leave = False
+        if use_event and TRANSITION_CHAIN_PASS and saved is not None and chain < 0x40 and not inst.removed:
+            # 2026-11-07 (C, 0x4496C0 / 0x44A0F0): the event stays current for the whole pass; after a transition
+            # fires, the new state's b = 1 transitions are checked at once with the same event (basic attack 0x34000037
+            # graph S2: S1 -> S0 [2, 0] then S0 -> S1 on 0x10000126 [2, 1] re-applies the hit) ([ics]
+            # transition_chain_pass)
+            inst.current_event = saved
+            try:
+                self.check(use_event=True, chain=chain + 1)
+            finally:
+                inst.current_event = None
         if not use_event:
             inst.current_event = saved
         return True

@@ -17,6 +17,7 @@ from . import records
 from . import script_model as V
 from . import script_runtime as R
 from . import prewarm
+from . import collision_contacts
 from . import defeat_guard
 from . import scriptlet_orders
 from . import skill_slots
@@ -1927,6 +1928,7 @@ class World:
             ch.health = min(ch.max_health, ch.health + ch.stats[STAT_HEALTH_REGEN] * dt)
             if int(ch.health) != before and int(ch.health) % 10 == 0:
                 self.vitals(ch)
+        collision_contacts.tick(self)          # champions holding collision touch others ([ics] held_collision_contacts)
         return changed
 
     def _regen(self, ent, dt, now):

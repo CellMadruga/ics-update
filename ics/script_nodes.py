@@ -1286,8 +1286,13 @@ def _launch(inst, n, ops, kind="straight"):
         inst.cast_missiles = list(getattr(inst, "cast_missiles", [])) + [m]   # the cast's end waits for a tether
     if m is not None and getattr(m, "origin_slot", None) is None:
         m.origin_slot = inst.slot if inst.slot is not None else _damage_slot(inst)
+    if m is not None:
+        from . import thrown_explosion
+        thrown_explosion.arm(inst, m, cls)    # P: Nightwing's thrown bike ([ics] thrown_explosions)
     if m is not None and len(ops) > 4:
         inst.set(ops[4], m)
+        if kind == "lobbed" and not ops[4].is_unset():
+            m.kept_by = inst                  # its launcher keeps its IID ([ics] lobbed_missile_stays, Missile.expire)
     if m is not None and kind == "lobbed" and len(ops) > 6 and not ops[6].is_unset():
         inst.set(ops[6], Handle("lobbed", inst.owner))   # a thrown / knocked-up entity's motion handle (0x340003E7)
     return m
@@ -1695,6 +1700,15 @@ def _dash_to_position(inst, n, ops, chain):      # 0x100000EA DashToPosition(ent
         want = d
     if mx > 0:
         want = min(want, mx)
+    flag = _val(n, 0)
+    past = float(inst.world.w.ic.get("dash_through_target", 1.0) or 0.0) if hasattr(inst.world, "w") else 0.0
+    if mx > 0 and isinstance(flag, int) and 0 < flag < 1000 and not flag & 2 and past > 0:
+        # 2026-11-07 (tester reports, the original: Krypto's W dashes THROUGH the ally, "a little past it", not its whole
+        # range, and shields every ally on the way): the node's first value is 15 in 31 of its 36 uses and 13 only in
+        # Krypto's W 0x340005F2 and the unused 0x340005BD; with that bit (2) clear the dash goes on past the target point
+        # by [ics] dash_through_target m, within its max distance (P: DashToPosition is server-only, the client has no
+        # execute for it; the distance has no source in the data: two bodies' radii, 0.5 + 0.5)
+        want = min(want + past, mx)
     if mn > 0:
         want = max(want, mn)
     dest = (start[0] + dx / d * want, start[1] + dy / d * want, start[2] if len(start) > 2 else 0.0)
@@ -1710,9 +1724,14 @@ def _dash_to_position(inst, n, ops, chain):      # 0x100000EA DashToPosition(ent
 
 def _dash_to_entity(inst, n, ops, chain):        # 0x1000013E DashToEntity(entity, target, speed, out h, out started)
     ent = _real(_ent(inst, ops, 0))
-    target = _real(inst.get(ops[1])) if len(ops) > 1 else None
+    target = inst.get(ops[1]) if len(ops) > 1 else None
+    lying = isinstance(target, Missile) and getattr(target, "kept_by", None) is not None and target.alive
+    if not lying:
+        target = _real(target)
+    # 2026-11-07 (tester report: Krypto's fetch dashed in place): a lobbed object that lies where it landed is the
+    # dash's own target, not its shooter (_real) ([ics] lobbed_missile_stays)
     w = inst.world
-    if ent is None or target in (None, 0) or not w.alive(target):
+    if ent is None or target in (None, 0) or not (lying or w.alive(target)):
         _set(inst, ops, 4, False)
         inst.after(0.0, lambda: inst.event(EV_DASH_FAILED))
         return False

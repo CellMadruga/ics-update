@@ -20,6 +20,9 @@ FLAGS = {
     "SKILL_ECHO_NODE": "skill_echo_node",
     "SKILL_ECHO_OWN_SLOT": "skill_echo_own_slot",
     "EXIT_SEES_EVENT": "exit_chain_sees_event",
+    "TRANSITION_EVENT_MODE": "transition_event_mode",
+    "TRANSITION_CHAIN_PASS": "transition_chain_pass",
+    "LOBBED_STAYS": "lobbed_missile_stays",
     "SKILL_USED_EVERY_USE": "skill_used_every_use",
 }
 

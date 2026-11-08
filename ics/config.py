@@ -269,6 +269,34 @@ DEFAULTS = {
         # chain sees the event that fired the transition (her W's S5 exit tests the dash's end events); it is
         # consumed before the next state's enter, as before (false = consumed before the exit chain, as before)
         "exit_chain_sees_event": True,
+        # 2026-11-07 (tester report: Nightwing's R gave no speed bonus; C, exe 0x4496C0 / 0x44A0F0): a trigger-less
+        # transition whose fields are [2, 0] fires when an event reaches the script, not at the end of the chain that
+        # entered its state (the ride status 0x340007C0 keeps its S1 and the update that raises the speed). false = at
+        # the chain's end, as before
+        "transition_event_mode": True,
+        # 2026-11-07 (C, exe 0x4496C0: the event stays current for the whole pass): after a transition fired by an
+        # event, the new state's b = 1 transitions are checked at once with the same event, up to 0x40 times (basic attack
+        # 0x34000037 graph S2: S1 -> S0, then S0 -> S1 on the same hit). false = the event fires one transition, as before
+        "transition_chain_pass": True,
+        # 2026-11-07 (tester report: Krypto's Fetch! stick invisible, the fetch dashed in place): a lobbed missile with
+        # no script of its own whose launcher keeps its IID (LaunchLobbedMissile's out operand) lies where it lands
+        # until the launcher's DestroyEntity or its script's end (P; the Q 0x340005EE dashes to it and destroys it).
+        # false = gone at its landing, as before
+        "lobbed_missile_stays": True,
+        # 2026-11-07 (tester reports, the original: Krypto's W dashes through the ally, a little past it): a DashToPosition
+        # whose first value has bit 2 clear (13: Krypto's W, the unused 0x340005BD; the others 15 / 0) goes this many m
+        # past the target point, within its max distance (P: no source in the data; 1 m = two bodies' radii). 0 = it
+        # stops at the target point, as before
+        "dash_through_target": 1.0,
+        # 2026-11-07 (P; tester's question: the description says the thrown bike deals 167 = stat 5 + 100 % bonus AD):
+        # a missile class launched by the listed script explodes at the end of its range or on an enemy champion,
+        # dealing the launcher's damage variable within its radius variable (ics/thrown_explosion.py: the evidence and
+        # the open clues). Off: [ics.thrown_explosions] "0x40000E6F" = {} (no such explosion, as before)
+        "thrown_explosions": {"0x40000E6F": {"script": "0x34000794", "damage": "BaseDamage", "radius": "DetectionRange"}},
+        # 2026-11-07 (same report: the bike never exploded on enemies): a champion holding collision (EnableCollision)
+        # gets 0x10000002 {TargetIID, CollisionPosition} when it starts touching a unit / champion / structure (P;
+        # ics/collision_contacts.py). false = no such contacts, as before
+        "held_collision_contacts": True,
         # 2026-11-03 (tester report 23:24: in the original the ranged W starts Blue Beetle's passive when launched or
         # detonated; the detonation is a second press with no SkillEcho): every taken use raises "skill used" 0x10000196
         # at its activation again; SkillEcho raises it only when the use's activation did not (false = anim-22)
