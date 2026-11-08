@@ -1494,11 +1494,13 @@ class Region:
             self.enter(t.target)
         finally:
             self._event_leave = False
-        if use_event and TRANSITION_CHAIN_PASS and saved is not None and chain < 0x40 and not inst.removed:
+        if (use_event and TRANSITION_CHAIN_PASS and TRANSITION_EVENT_MODE and saved is not None and chain < 0x40
+                and not inst.removed):
             # 2026-11-07 (C, 0x4496C0 / 0x44A0F0): the event stays current for the whole pass; after a transition
             # fires, the new state's b = 1 transitions are checked at once with the same event (basic attack 0x34000037
             # graph S2: S1 -> S0 [2, 0] then S0 -> S1 on 0x10000126 [2, 1] re-applies the hit) ([ics]
-            # transition_chain_pass)
+            # transition_chain_pass). Only with transition_event_mode: without it a trigger-less [2, 0] fires on the
+            # same event again, and the basic attack looped S1 -> S0 -> S1 (kit check: about 8x its damage)
             inst.current_event = saved
             try:
                 self.check(use_event=True, chain=chain + 1)

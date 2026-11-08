@@ -276,7 +276,8 @@ DEFAULTS = {
         "transition_event_mode": True,
         # 2026-11-07 (C, exe 0x4496C0: the event stays current for the whole pass): after a transition fired by an
         # event, the new state's b = 1 transitions are checked at once with the same event, up to 0x40 times (basic attack
-        # 0x34000037 graph S2: S1 -> S0, then S0 -> S1 on the same hit). false = the event fires one transition, as before
+        # 0x34000037 graph S2: S1 -> S0, then S0 -> S1 on the same hit). Only with transition_event_mode on (alone it
+        # looped basic attacks). false = the event fires one transition, as before
         "transition_chain_pass": True,
         # 2026-11-07 (tester report: Krypto's Fetch! stick invisible, the fetch dashed in place): a lobbed missile with
         # no script of its own whose launcher keeps its IID (LaunchLobbedMissile's out operand) lies where it lands

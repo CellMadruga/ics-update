@@ -2521,7 +2521,9 @@ shields every ally on the way).
 - `transition_chain_pass` (9bffec3, C): after an event fires a transition, the new state's `b = 1` transitions are
   checked at once with the same event, up to 0x40 times (basic attack 0x34000037 graph S2: S1 -> S0, then S0 -> S1 on
   the same hit). Kit check: Harley's Q starts working (0 -> 138.5); Krypto's Q runs to its end (on `main` its damage
-  came from leftovers of a stuck state).
+  came from leftovers of a stuck state). It applies only with `transition_event_mode` on: with that key off alone, the
+  basic attack looped S1 -> S0 -> S1 on one hit (about 8x its damage in the kit check), so each key can be turned off
+  on its own.
 - `held_collision_contacts` (9bffec3, P): a champion holding collision (EnableCollision 0x10000070) gets 0x10000002
   {TargetIID, CollisionPosition} when it starts touching a unit, champion or structure while walking on its own
   (`ics/collision_contacts.py`). Nightwing's ride now explodes on contact (headless: 460 -> 319) and ends the R.
