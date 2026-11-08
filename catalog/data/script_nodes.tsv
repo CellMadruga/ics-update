@@ -239,7 +239,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x10000118		0x34	0x99D000	0x15FD574	B r4 O O	0	0	data only	
 0x10000119		0x24	0x99AD00			2	1	data only	
 0x1000011A		0x84	0x9C4CB0	0x15FC38C	B {r4}	1	1	data only	ShowAnnouncement: the timeline descriptor (severity, strip icon, examination icon = a unit's billboard icon e.g. 0x130016CD, tint u8, audience 7) in GH cannon 0x340002CF (timeline-tooltip-camp-prespawn.md 1.1)
-0x1000011B		0xC	0x981880			0	0	data only	
+0x1000011B		0xC	0x981880			0	0	data only	Unused as a node. The same id is the event 0x1000011B {KillerIID 0x032C3FD4} a defeat guard raises on a lethal hit: raised by neither the client (only this class's id getter 0x97C7F0 and registration 0x13C462A hold the number) nor any script; waited for by 0x3400041C, 0x34000662, 0x340004DE, 0x340004A4 and Star Sapphire's Predator 0x340003D1 (which holds no guard)
 0x1000011E		0x44	0x99A460	0x15FA3F8	r4	0	0	data only	
 0x10000120		0x3C	0x9988C0	0x15FB7B4	B O O	0	0	data only	
 0x10000121		0x8C	0x99A220	0x15FC11C	B O O r4 r4 r4	0	0	data only	
@@ -283,7 +283,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x1000015E		0x8	0x981000			0	0	data only	
 0x10000160		0x24	0x99A350			0	0	data only	
 0x10000161		0x24	0x99B000			0	0	data only	
-0x10000162	AddDefeatGuard	0x44	0x99D5B0	0x15FD818	B O O	3	3	implemented (P)	type-0 defeat guard [add 1 / remove 0, type]: a lethal hit is held at 1 health and raises 0x1000011B {KillerIID}; anim-40: also non-script hits ([ics] defeat_guard_all_damage), except a guard whose script needs a champion killer (Possession 0x3400041C; ics/defeat_guard.py, [ics] defeat_guard_champion_killer). Users: 0x3400041C, 0x34000662, 0x340004DE, 0x340007E9
+0x10000162	SetDefeatType	0x44	0x99D5B0	0x15FD7B8	B O O r1 r4	3	3	implemented (P)	type-0 defeat guard [add 1 / remove 0, type]: a lethal hit is held at 1 health and raises 0x1000011B {KillerIID}; anim-40: also non-script hits ([ics] defeat_guard_all_damage), except a guard whose script needs a champion killer (Possession 0x3400041C; ics/defeat_guard.py, [ics] defeat_guard_champion_killer). Users: 0x3400041C, 0x34000662, 0x340004DE, 0x340007E9; anim-40 (C): server-only, the client execute (vtable 0x15FD7B8 slot 10, 0xAB4D80) is a no-op, Unpack 0x987C00 (handle, entity, enable +0x3C, type +0x40); types in the data: 0 (the four above), 5 (0x340004A4, a resurrection, also waits for 0x1000011B; not honoured by ics), 100 (HandleInvincible, 0x34000598)
 0x10000163		0x38	0x99A570	0x15FC26C	B O O r4 r4	0	0	data only	
 0x10000164		0x20	0x99A4C0			0	0	data only	
 0x10000165		0x54	0x99BB40	0x15FCCDC	B O O r4 O	0	0	data only	

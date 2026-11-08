@@ -2550,6 +2550,11 @@ shields every ally on the way).
 - Data, 2026-11-07: Krypto's W gives the shield to himself at the cast and to every ally it touches; on himself the
   data have no dash and no effect besides the shield (the "if the target is not me" has no else). The status
   0x48000FF5 (AddTempVital 50) goes as an ablative layer, about 5 % of Krypto's bar.
+- C (exe), 2026-11-07: the client never reads the defeat type. SetDefeatType 0x10000162 (vtable 0x15FD7B8) has a
+  no-op execute (0xAB4D80 `ret 4`), and neither the client nor any script raises 0x1000011B; the decision was the
+  original server's, so `defeat_guard_all_damage` stays P. Data: type 5 (0x340004A4, a resurrection) also waits for
+  0x1000011B, and the scripts that care about the killer check it themselves (Possession). Details in
+  reverse-engineering.md "PR #4 review".
 
 ### Probable (P) and their open clues
 
@@ -2578,7 +2583,9 @@ other fixes go with their existing keys (`slot_cooldown_vars`, `local_frames`, `
 
 ### Pending
 
-- Where the exe reads the defeat type (to make `defeat_guard_all_damage` C).
+- The defeat type is not read in the client (above): `defeat_guard_all_damage` and `defeat_guard_champion_killer` stay
+  P. Outside this PR: ics raises 0x1000011B for type-0 guards only, so the type-5 resurrection 0x340004A4 never
+  starts; Star Sapphire's Predator 0x340003D1 waits for 0x1000011B with no guard (the event may come on any lethal hit).
 - Stargirl's W fires 3 of its 4 small stars (expression 0xC, server only, P).
 - Krypto's stick and its arrow are not drawn (the server sends the object until its removal and the arrow 0x100003EA
   with 0x10000030 = the stick's IID). Krypto's W shield bubble and Superman's W ice are not shown either: the client

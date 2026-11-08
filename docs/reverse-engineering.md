@@ -4549,3 +4549,23 @@ Game test 2026-11-03 23:21-23:27 (Superman, Blue Beetle on Coast City PvP).
   (0x18000D54, 0x18001098), with the two 0x100003EA entries joined in one 0x8D or split (`scriptlet_orders = false`,
   21:54). Probable common cause: the client copy of the status script (0x200F, re-notes `client-status-effects.md` 3),
   which ics never sends (it crashed the client on 2026-10-23).
+- **Where the defeat type is read (C, 2026-11-07): not in the client.** SetDefeatType 0x10000162 (factory 0x99D5B0 ->
+  constructor 0x991490, vtable 0x15FD7B8, not 0x15FD818): slot 6 Unpack 0x987C00 reads the handle (+0xC), the entity
+  (+0x24), the enable byte (+0x3C; Pack 0x987B90 fails with 0x80004005 above 1) and the type (+0x40); slot 7 0x97CE90
+  returns the id; slot 10, the execute, is 0xAB4D80 `ret 4`, a no-op. The only other code that holds the number
+  0x10000162 is its registration (0x13C5B5A) and 0xA259BF, where it is a field name: 0xA258D0 walks the list 0x100002B1
+  of tables 0x100000D1 for the entry whose field 0x10000162 equals its argument and returns its field 0x10000339, a
+  priority for the sorted request list 0xA62C00 (callers push 1, 4, 0x10000001: a client mode stack, unrelated to
+  defeat). The event 0x1000011B {KillerIID 0x032C3FD4} is in the code only as the id getter of the unused node class
+  0x1000011B (0x97C7F0) and its registration (0x13C462A), and in no data table: the client never raises it, and no
+  script raises it either. The defeat decision, and so which hits a guard stops, was the original server's; it cannot
+  be confirmed from the client. `defeat_guard_all_damage` stays P.
+- **What the data say about defeat types (2026-11-07).** The node's uses (enable, type): type 0 in Possession
+  0x3400041C, Born on a Monday 0x34000662, The Punch Line 0x340004DE and on the unit Deathstroke's E missile
+  0x340007E9 carries; type 5 in 0x340004A4 (a resurrection: shield, stun, cooldown; owner not identified), which also
+  waits for 0x1000011B (S1 -> S6) and drops the guard after SpendCost(-100 %)[2, 1] when its shield runs out; type 100
+  (`HandleInvincible`) in 0x34000598. So 0x1000011B also comes for a type-5 guard (ics raises it for type 0 only).
+  The scripts that care who the killer is check it themselves (Possession: IsKind 8 on the copied KillerIID; its failed
+  branch empties the bar), which fits a server that raises the event for every lethal hit a guard stops, whatever
+  dealt it (P). Star Sapphire's Predator brain 0x340003D1 waits for 0x1000011B in S3 (manifested) with no guard of its
+  own (S3 -> S1): the event may come on any lethal hit, guarded or not (P, open).
