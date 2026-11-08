@@ -1436,8 +1436,9 @@ and checking each step against the data; node names are in `catalog/data/script_
 - **IsValidPosition `0x10000014`** guards the missile spawn; without it the state re-entered and launched a
   second missile.
 - **Assumption (not confirmed):** a target hit counts as a collision for MaxCollisions (NumCollisions grows when
-  a state that applied damage is left). The server-only expression `0xC` is still unknown (probably integer
-  divide, `idiv` in `icserver/scriptvm.py`); builtin predicate vt `0x15A89F0` (type 0x10) returns true.
+  a state that applied damage is left). Expression `0xC` is registered in the client after all: decrement, x - 1
+  (vt 0x15A9408, evaluate 0x462710; re-notes/script-nodes-complete.md "Fix B"; the old guess was integer divide,
+  `idiv` in `icserver/scriptvm.py`); builtin predicate vt `0x15A89F0` (type 0x10) returns true.
 - **Default values** of script variables (server-only blocks) take 2, 3 or 2 words by variant type
   (`7, 8 → 2`, `9, 0xA → 3`, `0xD, 0xE → 2`); type `0xA` is a guess.
 
@@ -4569,3 +4570,15 @@ Game test 2026-11-03 23:21-23:27 (Superman, Blue Beetle on Coast City PvP).
   branch empties the bar), which fits a server that raises the event for every lethal hit a guard stops, whatever
   dealt it (P). Star Sapphire's Predator brain 0x340003D1 waits for 0x1000011B in S3 (manifested) with no guard of its
   own (S3 -> S1): the event may come on any lethal hit, guarded or not (P, open).
+- **Stargirl's W, the fourth small star (2026-11-07).** Shooting Stars 0x3400056D: the large star 0x34000585 applies
+  0x480011A0 for (Charges + 1) x Interval = (4 + 1) x 0.4 = 2.0 s on its hit and raises 0x10000141; graph S3 starts
+  once the hit and the cast's end have both come, fires one small star 0x40000B18 each time its 0.4 s timer
+  (StarFireDuration, stat 14) runs out, NumStars = 0xC(NumStars) (decrement), and leaves on NumStars == 0, a death or
+  the status gone. So the data allow four stars with one interval to spare. In ics they came 0.5 s apart (headless:
+  27.67 / 28.17 / 28.67 after S3 at 27.17), the fourth fell after the status ended (29.12) and S3 left first. Cause:
+  the world clock is epoch-sized (about 1.79e9 s); a timer ends at t0 + 0.4, the update polls at t0 + 0.1 + 0.1 + 0.1
+  + 0.1, which is 5e-7 s short (always, in 10 000 random samples), so TimerExpired (`time >= end`) waits one more
+  update. Every timer whose duration is a multiple of 0.1 s runs 0.1 s long. With a 1e-4 s tolerance (experiment, not
+  in the repo) the four stars come at 0.4 s and S3 leaves on NumStars == 0; the kit check moves 40 slots in 29
+  champions (most 0.1 s shorter cooldowns; also Stargirl R 73 -> 200, Atomic Green Lantern R 249 -> 332, cooldowns
+  that start now: Doomsday Q, Arcane Zatanna W / R).

@@ -2586,7 +2586,11 @@ other fixes go with their existing keys (`slot_cooldown_vars`, `local_frames`, `
 - The defeat type is not read in the client (above): `defeat_guard_all_damage` and `defeat_guard_champion_killer` stay
   P. Outside this PR: ics raises 0x1000011B for type-0 guards only, so the type-5 resurrection 0x340004A4 never
   starts; Star Sapphire's Predator 0x340003D1 waits for 0x1000011B with no guard (the event may come on any lethal hit).
-- Stargirl's W fires 3 of its 4 small stars (expression 0xC, server only, P).
+- Stargirl's W fires 3 of its 4 small stars. Not expression 0xC (a decrement, registered in the client, already run
+  by ics): every timer whose duration is a multiple of the 0.1 s update runs one update long, because the game clock
+  is epoch-sized (about 1.79e9 s) and four 0.1 s steps add up to a hair less than 0.4 (reverse-engineering.md
+  "PR #4 review"). An engine-wide fix (a 1e-4 s tolerance in TimerExpired) moves 40 slots in 29 champions, so it is
+  not in this PR.
 - Krypto's stick and its arrow are not drawn (the server sends the object until its removal and the arrow 0x100003EA
   with 0x10000030 = the stick's IID). Krypto's W shield bubble and Superman's W ice are not shown either: the client
   gets 0x100003EA with fx 0x1E000257 and starts no ice particle, with the orders joined or split (so not the joined

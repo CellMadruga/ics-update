@@ -129,7 +129,7 @@ Unary classes read one child (0x469E40), binary two (0x469EE0), ternary three (0
 | 0x1000000B | 0x15FAB34 | Power(x) | X | 0/0 | 0x97D220 | pow(x - x0, p) + c |
 | 0x1000000C | 0x15FAB6C | Power2(x) | X | 0/0 | 0x97D280 | same evaluate as 0x1000000B (another parameter layout) |
 | 0x1000000F | 0x15FAA28 | Null | M | 0/0 | 0xAB4EB0 | returns the empty value (0x453270) |
-| 0xC | (none) | (server-only) idiv? | L | - | - | not registered in the client; decoder substitute |
+| 0xC | 0x15A9408 | decrement, x - 1 | C | - | - | registered in the client after all (script-nodes-complete.md "Fix B"; was "server-only idiv?") |
 | 0x10 | (none) | (server-only) or? | L | - | - | not registered in the client; children are comparisons -> logical OR |
 
 ## Value registry 0x45FAA0
