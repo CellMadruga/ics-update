@@ -2498,26 +2498,93 @@ check moved 30 slots in 16 champions outside the four, seven code findings, the 
   Possession 0x3400041C) holds a non-script lethal hit only from a champion; a turret could never kill him.
 - 7c line breaks, 7d `launch_sets_target` (new, split from `spawn_event_after_chain`), 7e bot notes in config.
 
+### 2026-11-07: in-game tests of the review (Wonder Woman W, Nightwing R, Krypto Q / W)
+
+What the tester reported (test branch `ics/pr4-test`, sessions 17:47, 19:51 and 20:23): Wonder Woman's W did nothing
+on herself and, on an ally, showed "Path Blocked" with no cooldown; Nightwing's R gave no speed bonus, the bike never
+exploded on enemies and the thrown bike dealt no damage (the skill's text says 167); Krypto's Fetch! stick was
+invisible and the fetch dashed in place; his W stopped at the ally (in the original it goes a little past it and
+shields every ally on the way).
+
+- `order_self_target` (c8ffb8c): the client names the champion's own IID for a self cast (0x20EE); the champion is
+  not in `w.entities`, so the order had no target. Now it targets the champion.
+- `exit_chain_sees_event` (c8ffb8c, C): the event that fires a transition stays current for the left state's exit
+  chain and is consumed before the next state's enter (0x44A0F0 keeps it for the whole pass). Wonder Woman's W S5 exit
+  (0x34000192) starts the cooldown only when the dash ended with C4 / C1 / C5 / 0x10000009, else shows skill error
+  0x10000034. The kit check moves 7 slots in 6 champions, all through exits that test their event (the micro-root
+  0x48000F90 after knockbacks, Zatanna's Punish burst 0x340000F0 on expiry).
+- `transition_event_mode` (9bffec3, C): a trigger-less transition with fields `[2, 0]` fires when an event is
+  dispatched, not when its state's enter chain ends, and not on events that chain raises (the client queues them,
+  0x461430). Nightwing's ride status 0x340007C0 now keeps its S1, whose update raises the speed (5.76 -> 25.64 in
+  5 s headless; the cap, +500 %, is 34.6). The same rule should keep Superman's W ice status 0x340002A9 in S1 until its
+  removal (seen in the 19:51 test: 0.7 s).
+- `transition_chain_pass` (9bffec3, C): after an event fires a transition, the new state's `b = 1` transitions are
+  checked at once with the same event, up to 0x40 times (basic attack 0x34000037 graph S2: S1 -> S0, then S0 -> S1 on
+  the same hit). Kit check: Harley's Q starts working (0 -> 138.5); Krypto's Q runs to its end (on `main` its damage
+  came from leftovers of a stuck state).
+- `held_collision_contacts` (9bffec3, P): a champion holding collision (EnableCollision 0x10000070) gets 0x10000002
+  {TargetIID, CollisionPosition} when it starts touching a unit, champion or structure while walking on its own
+  (`ics/collision_contacts.py`). Nightwing's ride now explodes on contact (headless: 460 -> 319) and ends the R.
+- `thrown_explosions` (9bffec3, P): Nightwing's thrown bike 0x40000E6F (launched by 0x34000794) explodes at the end of
+  its range or on an enemy champion, with the launcher's `BaseDamage` / `DetectionRange` (165, 3 m)
+  (`ics/thrown_explosion.py`).
+- `lobbed_missile_stays` (9bffec3, P): a lobbed missile with no script whose launcher keeps its IID lies where it lands
+  until that script's DestroyEntity or end. Krypto's Q 0x340005EE keeps the stick 0x40000BF2 in `$TheStick`, dashes to
+  it (S4 DashToEntity) and destroys it in S6; the network object goes to the landing point and DashToEntity aims at
+  the stick, not its shooter (headless: a 6.5 m dash; a bot on the way gets the aura 0x48001119).
+- `dash_through_target` = 1.0 m (9bffec3, P): a DashToPosition 0x100000EA whose first value has bit 2 clear goes that
+  far past its target point, within its max distance. 31 of its 36 uses have 15; 13 only in Krypto's W 0x340005F2 and
+  the unused 0x340005BD. Headless: an ally at 4 m -> a 5 m dash, shield 50 on Krypto, the ally on the way and the
+  target.
+
 ### Found
 
 - C (exe): a graph state enters its own chain before its sub-state (0x448A60 -> 0x449040) and leaves its sub-state
   first (0x448AA0); a left sub-graph is no longer updated. `graph_enter_before_children` and `stop_left_subgraphs`
   follow it. Kit-check differences explained per champion in reverse-engineering.md "PR #4 review".
+- C (exe), 2026-11-07: how transitions are evaluated (`[a, b]` = mode and second list; 0x4496C0, the graph's link
+  table +0x38 read by 0x44E690); an event stays current for the whole pass (0x44A0F0). Details in
+  reverse-engineering.md "PR #4 review".
+- Data, 2026-11-07: Krypto's W gives the shield to himself at the cast and to every ally it touches; on himself the
+  data have no dash and no effect besides the shield (the "if the target is not me" has no else). The status
+  0x48000FF5 (AddTempVital 50) goes as an ablative layer, about 5 % of Krypto's bar.
+
+### Probable (P) and their open clues
+
+| Key | Evidence | Open clue |
+|---|---|---|
+| `held_collision_contacts` | EnableCollision builds the body (C); the ride's script waits for 0x10000002 from its own champion | how the original server produced these contacts |
+| `thrown_explosions` | the skill's text: 167 = stat 5 (165) + 100 % bonus AD, the ride explosion's formula; "reaching the maximum distance or colliding with an enemy Champion" | the missile record 0x40000E6F (a payload not read), or a script not found |
+| `lobbed_missile_stays` | the Q keeps the stick, dashes to it and destroys it | the client still draws neither the stick nor the arrow (the end of the client's missile object, exe) |
+| `dash_through_target` | the tester's memory of the original; 13 only in Krypto's W | DashToPosition is server-only (no client execute); the 1 m has no source (two bodies' radii) |
 
 ### Config keys
 
-`skill_echo_own_slot` (true), `defeat_guard_champion_killer` (true), `launch_sets_target` (true).
+`skill_echo_own_slot` (true), `defeat_guard_champion_killer` (true), `launch_sets_target` (true); 2026-11-07:
+`order_self_target` (true), `exit_chain_sees_event` (true), `transition_event_mode` (true), `transition_chain_pass`
+(true), `held_collision_contacts` (true), `lobbed_missile_stays` (true), `dash_through_target` (1.0),
+`thrown_explosions` (`{"0x40000E6F": {"script": "0x34000794", "damage": "BaseDamage", "radius": "DetectionRange"}}`).
 
 ### How to roll back
 
 In `[ics]`: `skill_echo_own_slot = false`, `defeat_guard_champion_killer = false`, `launch_sets_target = false`; the
 other fixes go with their existing keys (`slot_cooldown_vars`, `local_frames`, `graph_done_waits`,
-`scriptlet_orders`, `defeat_guard_all_damage`).
+`scriptlet_orders`, `defeat_guard_all_damage`). 2026-11-07: `order_self_target = false`,
+`exit_chain_sees_event = false`, `transition_event_mode = false`, `transition_chain_pass = false`,
+`held_collision_contacts = false`, `lobbed_missile_stays = false`, `dash_through_target = 0`, and
+`[ics.thrown_explosions] "0x40000E6F" = {}`.
 
 ### Pending
 
 - Where the exe reads the defeat type (to make `defeat_guard_all_damage` C).
 - Stargirl's W fires 3 of its 4 small stars (expression 0xC, server only, P).
+- Krypto's stick and its arrow are not drawn (the server sends the object until its removal and the arrow 0x100003EA
+  with 0x10000030 = the stick's IID). Krypto's W shield bubble and Superman's W ice are not shown either: the client
+  gets 0x100003EA with fx 0x1E000257 and starts no ice particle, with the orders joined or split (so not the joined
+  order) and the fx pack resident. Probable common cause (P): the client copy of the status script (0x200F), never
+  sent by ics.
+- Nightwing: walking on foot with the bike clipping (the graph), the thrown bike left almost invisible in one
+  session of two with identical traffic (the 0x11F "soft" stop).
 
 ## anim-32 — the classes a kit creates are read at load (the first Q explosion)
 

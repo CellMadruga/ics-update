@@ -85,7 +85,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x1000005B		0x48	0x997DF0	0x15FB334	B O O	3	3	data only	
 0x1000005C		0x28	0x99A7A0			0	0	data only	
 0x1000005D		0x28	0x99E0B0			0	0	data only	
-0x1000005E	LaunchMissile	0xE0	0x99B9A0			18	17	partial	run by the new server (ics/script_runtime.py). A new missile a status launches (class value, op0 unset) is its applier's (ShooterIID, 0x100004E2, team) and starts at the status' owner: Meltdown's jump 0x340002BF; a status launching its own owner (knock-ups 0x340003E7 / 0x34000655) keeps it as the shooter (meltdown-moving-target.md 6.2, fase3-if)
+0x1000005E	LaunchMissile	0xE0	0x99B9A0			18	17	partial	run by the new server (ics/script_runtime.py). A new missile a status launches (class value, op0 unset) is its applier's (ShooterIID, 0x100004E2, team) and starts at the status' owner: Meltdown's jump 0x340002BF; a status launching its own owner (knock-ups 0x340003E7 / 0x34000655) keeps it as the shooter (meltdown-moving-target.md 6.2, fase3-if); anim-40: Nightwing's thrown bike 0x40000E6F (launched by 0x34000794) explodes at the end of its range or on an enemy champion with the launcher's BaseDamage / DetectionRange (P: the skill's text, 167 = stat 5 + 100 % bonus AD; no script found deals it; ics/thrown_explosion.py, [ics] thrown_explosions)
 0x1000005F	LaunchTetheredMissile	0x114	0x99B930	0x15FCC1C	B O O r4	1	1	handled	fase3-hk: the cast end (2) waits for the tethered missile (cast_waits_tether); its own script gets 0x10000005 when back. Value 0x3F000000 = f32 0.5 tether factor
 0x10000060		0x124	0x99B210	0x15FC7DC	B r4 r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r4 O O O O O O r4 r1	2	2	data only	
 0x10000061		0x24	0x99E000			0	0	data only	
@@ -101,7 +101,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x1000006D		0xA0	0x9CA680	0x15FE2DC	B O O O r1 r4 r4 r4 r4 r4 r4 r4 {r4} {r4} r1 r4 r1	0	0	data only	
 0x1000006E		0x24	0x99BD20			73	15	data only	
 0x1000006F	DisableCollision	0xC	0x981BB0			100	72	implemented	Removes the run's own collision hold from the script's own entity (the missile for a missile script; client 0x97D860 -> 0x976990 holder list); the body leaves collision only with no holder left. Champions / units / structures / props stay in collision by template (P). fase3-ig: was a flag on the shooter / dasher that made it unhittable (Grab never hit Robin after his Vault Kick)
-0x10000070	EnableCollision	0xC	0x981A50			110	80	implemented	Adds the run's collision hold (16-byte run key) on the script's own entity (client 0x97D720 -> 0x976990); paired with the same run's DisableCollision (dashes, missiles). 2026-10-30 (ca-ring-bodies-strip-layers.md 1.2, C): a hold is the only way the client builds a unit's collision body (0x976990 / 0x9754A0 -> 0x9793F0, key 0x4934AE2); with ics only hosted missile scripts do it, never a champion / minion / structure
+0x10000070	EnableCollision	0xC	0x981A50			110	80	implemented	Adds the run's collision hold (16-byte run key) on the script's own entity (client 0x97D720 -> 0x976990); paired with the same run's DisableCollision (dashes, missiles). 2026-10-30 (ca-ring-bodies-strip-layers.md 1.2, C): a hold is the only way the client builds a unit's collision body (0x976990 / 0x9754A0 -> 0x9793F0, key 0x4934AE2); with ics only hosted missile scripts do it, never a champion / minion / structure; anim-40: a champion holding collision gets OnEntityEvent 0x10000002 {TargetIID, CollisionPosition} when it starts touching a unit, champion or structure while walking (Nightwing's ride 0x34000794 explodes on contact; P: how the original produced it is not known; ics/collision_contacts.py, [ics] held_collision_contacts)
 0x10000072		0x24	0x999090	0x15FA308		6	5	data only	
 0x10000073		0x8	0x9810E0			0	0	data only	
 0x10000075		0x28	0x99CA50			18	4	data only	
@@ -200,7 +200,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x100000E6		0x24	0x99DE30			0	0	data only	
 0x100000E7		0x44	0x99D4E0	0x15FD788	B O r4 O O O O O O	0	0	data only	
 0x100000E8		0x3C	0x9985E0	0x15FB694	B O O	0	0	data only	
-0x100000EA		0xD4	0x99B640	0x15FCA14	B O O O O O O O r4 r1 O	2	2	data only	
+0x100000EA	DashToPosition	0xD4	0x99B640	0x15FCA14	B O O O O O O O r4 r1 O	2	2	implemented (P)	run by the new server (ics/script_nodes.py: entity, target, speed, max, min, wall, out handle, out started). Server-only (no client execute). anim-40: first value 15 in 31 of 36 uses, 13 in Krypto's W 0x340005F2 and the unused 0x340005BD; bit 2 clear = the dash goes past its target point by [ics] dash_through_target (1.0 m, within its max; P: the distance has no source)
 0x100000EB						4	3	not started	used by scripts, no registration found in the exe
 0x100000EC		0x28	0x998DD0			0	0	data only	
 0x100000ED		0x28	0x99DB60			1	1	data only	
@@ -255,7 +255,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x1000013B		0xC	0x981D10			69	56	data only	
 0x1000013C		0x20	0x997470			0	0	data only	
 0x1000013D		0x40	0x997930	0x15FB154	B O O O r1	0	0	data only	
-0x1000013E		0x90	0x99BEE0	0x15FCE2C	B O O r4 O r4 O O r4 O O r4 r4 r4 O O O O O r1 r1 r1 r1 r1	11	11	data only	
+0x1000013E	DashToEntity	0x90	0x99BEE0	0x15FCE2C	B O O r4 O r4 O O r4 O O r4 r4 r4 O O O O O r1 r1 r1 r1 r1	11	11	implemented	run by the new server (ics/script_nodes.py: entity, target, speed, out handle, out started). anim-40: a lobbed missile that lies where it landed is the dash's own target, not its shooter (Krypto's Fetch! 0x340005EE S4 to the stick; [ics] lobbed_missile_stays)
 0x1000013F		0x50	0x9CAB60	0x15FE1A8	{B O O r4 O r4 O O r4 O O r4 r4 r4 O O O O O r1 r1 r1 r1 r1} O r4 r1 O r1 r1 {r4}	0	0	data only	
 0x10000140		0x38	0x99DC70	0x15FDC6C	B O O	3	2	data only	
 0x10000141		0x28	0x998640			0	0	data only	
@@ -275,7 +275,7 @@ id	name	size	factory	vtable	unpack	uses	scripts	server_status	notes
 0x10000151		0xC	0x981C20			1	1	data only	
 0x10000152		0x24	0x99A8C0			0	0	data only	
 0x10000153		0x2C	0x99CE90	0x15FD514	B O r4 r1 r1	5	5	data only	Blue Beetle's basic attack 0x34000457 sets its slot-0 stat 18 (melee 17 / ranged 18); the attack step reads it (anim-19, [ics] attack_range_override)
-0x10000154		0xE8	0x99B8A0			5	5	data only	
+0x10000154	LaunchLobbedMissile	0xE8	0x99B8A0			5	5	implemented (P)	run by the new server (a straight flight to the point, P). anim-40: when the launcher keeps the IID (out operand 4) and the missile has no script, it lies at the landing point until that script's DestroyEntity or end (Krypto's stick 0x40000BF2 in $TheStick; P, [ics] lobbed_missile_stays). The client still draws neither the stick nor its arrow (open)
 0x10000155		0x34	0x9CA7C0	0x15FE33C	B r1 r4 O r4 {r4}	8	8	data only	
 0x10000157		0x44	0x99AF30	0x15FC7DC	B r4 r4 {r1 r4 r4 {V V V V *loop} {r1}} r4 r4 r4 O O O O O O r4 r1	0	0	data only	
 0x1000015C		0x3C	0x999480	0x15FBBA4	B O O r1 r1 r1 r1 O r4 r4	0	0	data only	

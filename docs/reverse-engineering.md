@@ -4498,3 +4498,54 @@ Game test 2026-11-03 23:21-23:27 (Superman, Blue Beetle on Coast City PvP).
 - **Defeat guards (type 0).** Possession 0x3400041C copies KillerIID into TargetIID and needs IsKind 8 (a champion);
   its failed branch is SpendCost(-100 %)[2, 1]. Deathstroke's E missile 0x340007E9 puts a guard on the unit it carries
   (IsKind 0x10100) for ~0.35 s. Shazam's chain lightning 0x340006FF runs with the Q's slot and calls SkillEcho per hop.
+- **Transition evaluation (C, 2026-11-07).** A transition record: +0x18 destination, +0x1C trigger, +0x20 = `a`,
+  +0x24 = `b`. Each state has, in the graph's link table (+0x38, read by 0x44E690; mode mask at +0x44), three modes x
+  two lists. 0x4496C0(ctx, mode) checks list 0 of the active state; a transition with no trigger is true; when one
+  fires, the check goes on in the new state's list 1, up to 0x40 times. Modes: 0 / 1 = every update, before / after
+  the state's update chain (slot 12, 0x4497B0); 2 = when an event is dispatched (0x44A0F0, which keeps the event current
+  for the whole pass, then slot 13, 0x449800). `a` is the mode; `b` = 1 when the transition is also in list 1. Events
+  raised by an enter chain are queued by the client (0x461430), so a `[2, 0]` transition does not fire on them. ics:
+  `transition_event_mode` (38 trigger-less `[2, 0]` transitions in the scripts; Nightwing's ride status 0x340007C0
+  stays in S1, whose update raises the speed), `transition_chain_pass` (basic attack 0x34000037 graph S2: S1 -> S0,
+  then S0 -> S1 on the same hit; Harley's Q, Krypto's Q), `exit_chain_sees_event` (the left state's exit chain sees
+  the event; Wonder Woman's W 0x34000192 S5 exit starts the cooldown only on C4 / C1 / C5 / 0x10000009, else
+  ShowSkillError 0x10000034).
+- **Self-cast orders (2026-11-07).** For a skill cast on oneself the client's 0x20EE names the champion's own IID; ics
+  keeps champions out of `w.entities`, so `session.ev_order` looks the IID up on the champion too
+  (`order_self_target`).
+- **Collision contacts of a walking champion (P, 2026-11-07).** EnableCollision 0x10000070 builds the run's collision
+  body on the client (C, above). Nightwing's Let's Ride 0x34000794 (graph S1, S5 sub-graph T3) then waits for
+  OnEntityEvent 0x10000002 {TargetIID 0x632FE62, CollisionPosition 0x33016EE} on its own champion, who walks on his
+  own (no forced movement). ics raised 0x10000002 only for missiles, dashes and thrown objects; `ics/collision_contacts.py`
+  raises it when a champion holding collision starts touching a unit, champion or structure (bodies' radii, 0.5 m by
+  default); the script filters by kind and relation (`IsKind(CollidedIID)[8]` for the explosion). How the original
+  server produced these contacts is not known (`held_collision_contacts`).
+- **Nightwing's thrown bike (P, 2026-11-07).** The second press (S5 -> S4 -> S3 LaunchMissile 0x40000E6F -> S2,
+  clean-up) deals no damage in the scripts; the bike's only script 0x340001A6 does destruction impulses. The skill's own
+  text gives 167 Attack Damage in an area at the end of the range or on an enemy champion: 167 = stat 5 (165 at rank 1)
+  + 100 % of the bonus AD (2), the formula of the ride's own explosion (S5 sub-graph S1: FindTargets(DetectionRange) +
+  ApplyDamage(BaseDamage)). `ics/thrown_explosion.py` does that with the launcher's variables (`thrown_explosions`).
+  Open clues: a payload of the missile record 0x40000E6F not read yet, or a script not found. The bike left almost
+  invisible (one session of two, identical server traffic: `stop Vfx_Ntw_Lets_Ride_Active` by 0x11F + 0x8D 0x100010D8)
+  is the client's: the 0x11F soft stop.
+- **Krypto's Fetch! stick (P, 2026-11-07).** The Q 0x340005EE launches the stick 0x40000BF2 (LaunchLobbedMissile
+  0x10000154, no script of its own) and keeps its IID in `$TheStick` (the node's out operand), dashes to it in S4
+  (DashToEntity 0x1000013E) and destroys it in S6. ics removed a lobbed missile at its landing (0.23 s), so the dash
+  had no target; `lobbed_missile_stays` keeps it at the landing point until the launcher's DestroyEntity or the end
+  of its script, moves its network object there, and DashToEntity aims at the stick itself, not its shooter. The
+  client still draws neither the stick (only a yellow glow, particle 0x18000FBA) nor the arrow 0x100003EA (sent to
+  Krypto with 0x10000030 = the stick's IID): probably the client stops drawing a missile object at the end of its
+  flight (exe, open).
+- **Krypto's Man's Best Friend (P, 2026-11-07).** The W 0x340005F2 shields Krypto at the cast and every ally the dash
+  touches (status 0x48000FF5, script 0x340003C4: AddTempVital 50, the ablative layer of the 0x42 vitals); on himself
+  there is no dash (the "if the target is not me" has no else). Its DashToPosition 0x100000EA has first value 13; 31 of
+  the node's 36 uses have 15 (13 only here and in the unused 0x340005BD). The node is server-only (no client execute),
+  so the meaning of bit 2 is P: clear = the dash goes past its target point (`dash_through_target`, 1.0 m, within its
+  max; the distance has no source, two bodies' radii; the tester: "a little past the ally").
+- **Status visuals not shown (P, 2026-11-07).** Krypto's shield bubble and Superman's W ice 0x340002A9: neither the
+  status script nor the record 0x48000FF5 has an effect node (0x100008A6 = the icon record 0x48000FF6;
+  0x1000089E / 8A2 / 8A3 -> 0x1E000F07 / F02 / F08 are not records in the packs). For the ice the client gets
+  0x100003EA with fx 0x1000050A = 0x1E000257 (its pack 0xA00000B3 is resident) and starts none of the ice particles
+  (0x18000D54, 0x18001098), with the two 0x100003EA entries joined in one 0x8D or split (`scriptlet_orders = false`,
+  21:54). Probable common cause: the client copy of the status script (0x200F, re-notes `client-status-effects.md` 3),
+  which ics never sends (it crashed the client on 2026-10-23).
